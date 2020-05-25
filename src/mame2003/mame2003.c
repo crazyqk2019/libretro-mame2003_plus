@@ -185,44 +185,44 @@ void retro_set_environment(retro_environment_t cb)
  */
 static void init_core_options(void)
 {
-  init_default(&default_options[OPT_4WAY],                APPNAME"_four_way_emulation",  "4-way joystick emulation on 8-way joysticks; disabled|enabled");
+  init_default(&default_options[OPT_4WAY],                APPNAME"_four_way_emulation",  "在8向摇杆上模拟4向摇杆; disabled|enabled");
 #if defined(__IOS__)
-  init_default(&default_options[OPT_MOUSE_DEVICE],        APPNAME"_mouse_device",        "Mouse Device; pointer|mouse|disabled");
+  init_default(&default_options[OPT_MOUSE_DEVICE],        APPNAME"_mouse_device",        "鼠标设备; pointer|mouse|disabled");
 #else
-  init_default(&default_options[OPT_MOUSE_DEVICE],        APPNAME"_mouse_device",        "Mouse Device; mouse|pointer|disabled");
+  init_default(&default_options[OPT_MOUSE_DEVICE],        APPNAME"_mouse_device",        "鼠标设备; mouse|pointer|disabled");
 #endif
-  init_default(&default_options[OPT_CROSSHAIR_ENABLED],   APPNAME"_crosshair_enabled",   "Show Lightgun crosshair; enabled|disabled");
-  init_default(&default_options[OPT_SKIP_DISCLAIMER],     APPNAME"_skip_disclaimer",     "Skip Disclaimer; disabled|enabled");
-  init_default(&default_options[OPT_SKIP_WARNINGS],       APPNAME"_skip_warnings",       "Skip Warnings; disabled|enabled");
-  init_default(&default_options[OPT_DISPLAY_SETUP],       APPNAME"_display_setup",       "Display MAME menu; disabled|enabled");
-  init_default(&default_options[OPT_BRIGHTNESS],          APPNAME"_brightness",          "Brightness; 1.0|0.2|0.3|0.4|0.5|0.6|0.7|0.8|0.9|1.1|1.2|1.3|1.4|1.5|1.6|1.7|1.8|1.9|2.0");
-  init_default(&default_options[OPT_GAMMA],               APPNAME"_gamma",               "Gamma correction; 1.0|0.5|0.6|0.7|0.8|0.9|1.1|1.2|1.3|1.4|1.5|1.6|1.7|1.8|1.9|2.0");
-  init_default(&default_options[OPT_ARTWORK],             APPNAME"_display_artwork",     "Display artwork (Restart core); enabled|disabled");
-  init_default(&default_options[OPT_ART_RESOLUTION],      APPNAME"_art_resolution",      "Artwork resolution multiplier (Restart core); 1|2");
-  init_default(&default_options[OPT_NEOGEO_BIOS],         APPNAME"_neogeo_bios",         "Specify Neo Geo BIOS (Restart core); default|euro|euro-s1|us|us-e|asia|japan|japan-s2|unibios33|unibios20|unibios13|unibios11|unibios10|debug|asia-aes");
-  init_default(&default_options[OPT_STV_BIOS],            APPNAME"_stv_bios",            "Specify Sega ST-V BIOS (Restart core); default|japan|japana|us|japan_b|taiwan|europe");
-  init_default(&default_options[OPT_USE_ALT_SOUND],       APPNAME"_use_alt_sound",       "Use CD soundtrack (Restart core); enabled|disabled");
-  init_default(&default_options[OPT_SHARE_DIAL],          APPNAME"_dialsharexy",         "Share 2 player dial controls across one X/Y device; disabled|enabled");
-  init_default(&default_options[OPT_DPAD_ANALOG],         APPNAME"_analog",              "Control mapping ; analog|digital");
-  init_default(&default_options[OPT_DEADZONE],            APPNAME"_deadzone",            "Analog deadzone; 20|0|5|10|15|25|30|35|40|45|50|55|60|65|70|75|80|85|90|95");
-  init_default(&default_options[OPT_TATE_MODE],           APPNAME"_tate_mode",           "TATE Mode - Rotating display (Restart core); disabled|enabled");
-  init_default(&default_options[OPT_VECTOR_RESOLUTION],   APPNAME"_vector_resolution",   "Vector resolution (Restart core); 1024x768|640x480|1280x960|1440x1080|1600x1200|original");
-  init_default(&default_options[OPT_VECTOR_ANTIALIAS],    APPNAME"_vector_antialias",    "Vector antialiasing; enabled|disabled");
-  init_default(&default_options[OPT_VECTOR_BEAM],         APPNAME"_vector_beam_width",   "Vector beam width (only with antialiasing); 2|1|1.2|1.4|1.6|1.8|2.5|3|4|5|6|7|8|9|10|11|12");
-  init_default(&default_options[OPT_VECTOR_TRANSLUCENCY], APPNAME"_vector_translucency", "Vector translucency; enabled|disabled");
-  init_default(&default_options[OPT_VECTOR_FLICKER],      APPNAME"_vector_flicker",      "Vector flicker; 20|0|10|30|40|50|60|70|80|90|100");
-  init_default(&default_options[OPT_VECTOR_INTENSITY],    APPNAME"_vector_intensity",    "Vector intensity; 1.5|0.5|1|2|2.5|3");
-  init_default(&default_options[OPT_NVRAM_BOOTSTRAP],     APPNAME"_nvram_bootstraps",    "NVRAM Bootstraps; enabled|disabled");
-  init_default(&default_options[OPT_SAMPLE_RATE],         APPNAME"_sample_rate",         "Sample Rate (KHz); 48000|8000|11025|22050|30000|44100|");
-  init_default(&default_options[OPT_DCS_SPEEDHACK],       APPNAME"_dcs_speedhack",       "DCS Speedhack; enabled|disabled");
-  init_default(&default_options[OPT_INPUT_INTERFACE],     APPNAME"_input_interface",     "Input interface; retropad|keyboard|simultaneous");
-  init_default(&default_options[OPT_MAME_REMAPPING],      APPNAME"_mame_remapping",      "Legacy Remapping (restart); enabled|disabled");
-  init_default(&default_options[OPT_FRAMESKIP],           APPNAME"_frameskip",           "Frameskip; 0|1|2|3|4|5");
-  init_default(&default_options[OPT_CORE_SYS_SUBFOLDER],  APPNAME"_core_sys_subfolder",  "Locate system files within a subfolder; enabled|disabled"); /* This should be probably handled by the frontend and not by cores per discussions in Fall 2018 but RetroArch for example doesn't provide this as an option. */
-  init_default(&default_options[OPT_CORE_SAVE_SUBFOLDER], APPNAME"_core_save_subfolder", "Locate save files within a subfolder; enabled|disabled"); /* This is already available as an option in RetroArch although it is left enabled by default as of November 2018 for consistency with past practice. At least for now.*/
-  init_default(&default_options[OPT_Cheat_Input_Ports],   APPNAME"_cheat_input_ports",   "Dip switch/Cheat input ports; disabled|enabled");
-  init_default(&default_options[OPT_Machine_Timing],      APPNAME"_machine_timing",      "Bypass audio skew (Restart core); enabled|disabled");
-  init_default(&default_options[OPT_Digital_Analog],      APPNAME"_digital_analog",      "Center joystick axis for digital controls; enabled|disabled");
+  init_default(&default_options[OPT_CROSSHAIR_ENABLED],   APPNAME"_crosshair_enabled",   "显示光枪准心; enabled|disabled");
+  init_default(&default_options[OPT_SKIP_DISCLAIMER],     APPNAME"_skip_disclaimer",     "跳过免责声明; disabled|enabled");
+  init_default(&default_options[OPT_SKIP_WARNINGS],       APPNAME"_skip_warnings",       "跳过警告; disabled|enabled");
+  init_default(&default_options[OPT_DISPLAY_SETUP],       APPNAME"_display_setup",       "显示MAME菜单; disabled|enabled");
+  init_default(&default_options[OPT_BRIGHTNESS],          APPNAME"_brightness",          "亮度; 1.0|0.2|0.3|0.4|0.5|0.6|0.7|0.8|0.9|1.1|1.2|1.3|1.4|1.5|1.6|1.7|1.8|1.9|2.0");
+  init_default(&default_options[OPT_GAMMA],               APPNAME"_gamma",               "伽马矫正; 1.0|0.5|0.6|0.7|0.8|0.9|1.1|1.2|1.3|1.4|1.5|1.6|1.7|1.8|1.9|2.0");
+  init_default(&default_options[OPT_ARTWORK],             APPNAME"_display_artwork",     "显示艺术图（须要重启）; enabled|disabled");
+  init_default(&default_options[OPT_ART_RESOLUTION],      APPNAME"_art_resolution",      "艺术图放大倍数（须要重启）; 1|2");
+  init_default(&default_options[OPT_NEOGEO_BIOS],         APPNAME"_neogeo_bios",         "指定Neo Geo BIOS（须要重启）; default|euro|euro-s1|us|us-e|asia|japan|japan-s2|unibios33|unibios20|unibios13|unibios11|unibios10|debug|asia-aes");
+  init_default(&default_options[OPT_STV_BIOS],            APPNAME"_stv_bios",            "指定Sega ST-V BIOS（须要重启）; default|japan|japana|us|japan_b|taiwan|europe");
+  init_default(&default_options[OPT_USE_ALT_SOUND],       APPNAME"_use_alt_sound",       "使用CD音轨（须要重启）; enabled|disabled");
+  init_default(&default_options[OPT_SHARE_DIAL],          APPNAME"_dialsharexy",         "在一个X/Y轴控制器上共享2个玩家的拨号控制; disabled|enabled");
+  init_default(&default_options[OPT_DPAD_ANALOG],         APPNAME"_analog",              "控制器映射方式; 模拟|数字");
+  init_default(&default_options[OPT_DEADZONE],            APPNAME"_deadzone",            "模拟摇杆盲区; 20|0|5|10|15|25|30|35|40|45|50|55|60|65|70|75|80|85|90|95");
+  init_default(&default_options[OPT_TATE_MODE],           APPNAME"_tate_mode",           "TATE模式 - 旋转屏幕（须要重启）; disabled|enabled");
+  init_default(&default_options[OPT_VECTOR_RESOLUTION],   APPNAME"_vector_resolution",   "矢量分辨率（须要重启）; 1024x768|640x480|1280x960|1440x1080|1600x1200|原始分辨率");
+  init_default(&default_options[OPT_VECTOR_ANTIALIAS],    APPNAME"_vector_antialias",    "矢量反锯齿; enabled|disabled");
+  init_default(&default_options[OPT_VECTOR_BEAM],         APPNAME"_vector_beam_width",   "矢量束宽度（仅用于反锯齿）; 2|1|1.2|1.4|1.6|1.8|2.5|3|4|5|6|7|8|9|10|11|12");
+  init_default(&default_options[OPT_VECTOR_TRANSLUCENCY], APPNAME"_vector_translucency", "矢量半透明; enabled|disabled");
+  init_default(&default_options[OPT_VECTOR_FLICKER],      APPNAME"_vector_flicker",      "矢量抖动; 20|0|10|30|40|50|60|70|80|90|100");
+  init_default(&default_options[OPT_VECTOR_INTENSITY],    APPNAME"_vector_intensity",    "矢量强度; 1.5|0.5|1|2|2.5|3");
+  init_default(&default_options[OPT_NVRAM_BOOTSTRAP],     APPNAME"_nvram_bootstraps",    "NVRAM引导程序; enabled|disabled");
+  init_default(&default_options[OPT_SAMPLE_RATE],         APPNAME"_sample_rate",         "音频采样率(KHz); 48000|8000|11025|22050|30000|44100|");
+  init_default(&default_options[OPT_DCS_SPEEDHACK],       APPNAME"_dcs_speedhack",       "DCS速度修改; enabled|disabled");
+  init_default(&default_options[OPT_INPUT_INTERFACE],     APPNAME"_input_interface",     "输入接口; 手柄|键盘|同时");
+  init_default(&default_options[OPT_MAME_REMAPPING],      APPNAME"_mame_remapping",      "传统键位映射（须要重启）; enabled|disabled");
+  init_default(&default_options[OPT_FRAMESKIP],           APPNAME"_frameskip",           "跳帧; 0|1|2|3|4|5");
+  init_default(&default_options[OPT_CORE_SYS_SUBFOLDER],  APPNAME"_core_sys_subfolder",  "在子目录中寻找系统文件; enabled|disabled"); /* This should be probably handled by the frontend and not by cores per discussions in Fall 2018 but RetroArch for example doesn't provide this as an option. */
+  init_default(&default_options[OPT_CORE_SAVE_SUBFOLDER], APPNAME"_core_save_subfolder", "在子目录中寻找存档文件; enabled|disabled"); /* This is already available as an option in RetroArch although it is left enabled by default as of November 2018 for consistency with past practice. At least for now.*/
+  init_default(&default_options[OPT_Cheat_Input_Ports],   APPNAME"_cheat_input_ports",   "Dip开关/作弊输入端口; disabled|enabled");
+  init_default(&default_options[OPT_Machine_Timing],      APPNAME"_machine_timing",      "略过音频偏移（须重启）; enabled|disabled");
+  init_default(&default_options[OPT_Digital_Analog],      APPNAME"_digital_analog",      "为数字控制器置中摇杆轴; enabled|disabled");
   init_default(&default_options[OPT_end], NULL, NULL);
   set_variables(true);
 }
@@ -335,9 +335,9 @@ static void update_variables(bool first_time)
       switch(index)
       {
         case OPT_INPUT_INTERFACE:
-          if(strcmp(var.value, "retropad") == 0)
+          if(strcmp(var.value, "手柄") == 0)
             options.input_interface = RETRO_DEVICE_JOYPAD;
-          else if(strcmp(var.value, "keyboard") == 0)
+          else if(strcmp(var.value, "键盘") == 0)
             options.input_interface = RETRO_DEVICE_KEYBOARD;
 		    else
 			    options.input_interface = RETRO_DEVICE_KEYBOARD + RETRO_DEVICE_JOYPAD;
@@ -494,7 +494,7 @@ static void update_variables(bool first_time)
           }
 
       case OPT_DPAD_ANALOG:
-          if(strcmp(var.value, "analog") == 0)
+          if(strcmp(var.value, "模拟") == 0)
           {
             if( options.analog !=1 && control_flag !=-1) control_flag =1;
             options.analog = 1;
