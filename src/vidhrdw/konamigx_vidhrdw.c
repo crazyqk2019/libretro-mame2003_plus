@@ -14,6 +14,7 @@
 static int layer_colorbase[4];
 static int gx_tilebanks[8], gx_oldbanks[8];
 static int gx_invertlayersBC;
+int gx_le2_textcolour_hack;
 static int gx_tilemode, gx_rozenable, psac_colorbase, last_psac_colorbase;
 static struct tilemap *gx_psac_tilemap, *gx_psac_tilemap2;
 extern data32_t *gx_psacram, *gx_subpaletteram32;
@@ -155,6 +156,7 @@ static int _gxcommoninitnosprites(void)
 
 	gx_invertlayersBC = 0;
 	gx_tilemode = 0;
+	gx_le2_textcolour_hack = 0;
 
 	/* Documented relative offsets of non-flipped games are (-2, 0, 2, 3),(0, 0, 0, 0).*/
 	/* (+ve values move layers to the right and -ve values move layers to the left)*/
@@ -185,7 +187,7 @@ static int _gxcommoninit(void)
 
 VIDEO_START(konamigx_5bpp)
 {
-	if (!strcmp(Machine->gamedrv->name,"sexyparo"))
+	if (!strcmp(Machine->gamedrv->name,"sexyparo") || !strcmp(Machine->gamedrv->name,"sexyparoa"))
 		game_tile_callback = konamigx_alpha_tile_callback;
 	else
 		game_tile_callback = konamigx_type2_tile_callback;
@@ -222,7 +224,7 @@ VIDEO_START(konamigx_5bpp)
 		K053247GP_set_SpriteOffset(-46, -23);
 	} else
 
-	if (!strcmp(Machine->gamedrv->name,"sexyparo"))
+	if (!strcmp(Machine->gamedrv->name,"sexyparo") || !strcmp(Machine->gamedrv->name,"sexyparoa"))
 	{
 		K053247GP_set_SpriteOffset(-42, -23);
 	}
@@ -285,6 +287,8 @@ VIDEO_START(le2)
 
 	gx_invertlayersBC = 1;
 	konamigx_mixer_primode(-1); /* swapped layer B and C priorities?*/
+
+	gx_le2_textcolour_hack = 1; /* force text layer to use the right palette */
 
 	return 0;
 }
@@ -484,8 +488,8 @@ VIDEO_UPDATE(konamigx)
 
 	if( gx_invertlayersBC )
 	{
-		draw_crosshair( bitmap, readinputport( 9)*287/0xff+24, readinputport(10)*223/0xff+16, cliprect );
-		draw_crosshair( bitmap, readinputport(11)*287/0xff+24, readinputport(12)*223/0xff+16, cliprect );
+		draw_crosshair( 1, bitmap, readinputport( 9)*287/0xff+24, readinputport(10)*223/0xff+16, cliprect );
+		draw_crosshair( 2, bitmap, readinputport(11)*287/0xff+24, readinputport(12)*223/0xff+16, cliprect );
 	}
 }
 
@@ -575,4 +579,3 @@ WRITE32_HANDLER( konamigx_t4_psacmap_w )
 
 	tilemap_mark_tile_dirty(gx_psac_tilemap, offset);
 }
-

@@ -15,6 +15,8 @@
 #define LOG_BUFFER_FILLING			(0)
 
 
+bool activate_dcs_speedhack = 1; /* this is core maintaniers choice to always be active dont change */
+
 /***************************************************************************
 	CONSTANTS
 ****************************************************************************/
@@ -413,7 +415,7 @@ void dcs_init(void)
 
 
 	/* install the speedup handler */
-   if (options.activate_dcs_speedhack)
+   if (activate_dcs_speedhack)
    {
       dcs_speedup1 = install_mem_write16_handler(dcs_cpunum, ADSP_DATA_ADDR_RANGE(0x04f8, 0x04f8), dcs_speedup1_w);
       dcs_speedup2 = install_mem_write16_handler(dcs_cpunum, ADSP_DATA_ADDR_RANGE(0x063d, 0x063d), dcs_speedup2_w);
@@ -456,13 +458,13 @@ void dcs2_init(offs_t polling_offset)
 			dcs_expanded_rom[0x400 * page + i] = romsrc[BYTE_XOR_LE(0x1000 * page + i)];
 	
     /* install the speedup handler */
-    if (options.activate_dcs_speedhack)
+    if (activate_dcs_speedhack)
     {
       dcs_speedup1 = install_mem_write16_handler(dcs_cpunum, ADSP_DATA_ADDR_RANGE(0x04f8, 0x04f8), dcs_speedup1_w);
       dcs_speedup2 = install_mem_write16_handler(dcs_cpunum, ADSP_DATA_ADDR_RANGE(0x063d, 0x063d), dcs_speedup2_w);
 	    dcs_speedup3 = install_mem_write16_handler(dcs_cpunum, ADSP_DATA_ADDR_RANGE(0x063a, 0x063a), dcs_speedup3_w);
       dcs_speedup4 = install_mem_write16_handler(dcs_cpunum, ADSP_DATA_ADDR_RANGE(0x0641, 0x0641), dcs_speedup4_w);
-     }
+    }
 	
 	/* create the timer */
 	dcs.reg_timer = timer_alloc(dcs_irq);
@@ -553,7 +555,7 @@ static WRITE16_HANDLER( dcs_rombank_select_w )
 	set_led_status(2, data & 0x800);
 #endif
 
-   if (options.activate_dcs_speedhack)
+   if (activate_dcs_speedhack)
    {
       /* they write 0x800 here just before entering the stall loop */
       if (data == 0x800)
@@ -656,8 +658,8 @@ int dcs_control_r(void)
 
 void dcs_reset_w(int state)
 {
-	/* going high halts the CPU */
-	if (state)
+	/* going low halts the CPU */
+	if (!state)
 	{
 		log_cb(RETRO_LOG_DEBUG, LOGPRE "%08x: DCS reset = %d\n", activecpu_get_pc(), state);
 
@@ -666,7 +668,7 @@ void dcs_reset_w(int state)
 		cpu_set_reset_line(dcs_cpunum, ASSERT_LINE);
 	}
 	
-	/* going low resets and reactivates the CPU */
+	/* going high resets and reactivates the CPU */
 	else
 		cpu_set_reset_line(dcs_cpunum, CLEAR_LINE);
 }
@@ -1081,7 +1083,7 @@ static void dcs_irq(int state)
 	/* store it */
 	cpunum_set_reg(dcs_cpunum, ADSP2100_I0 + dcs.ireg, reg);
    
-   if (options.activate_dcs_speedhack)
+   if (activate_dcs_speedhack)
 	/* this is the same trigger as an interrupt */
       cpu_triggerint(dcs_cpunum);
 }

@@ -827,7 +827,6 @@ static MACHINE_INIT( aburner ){
 }
 
 static DRIVER_INIT( thndrbdj ){
-	machine_init_sys16_onetime();
 	sys16_bg1_trans = 1;
 	sys16_interleave_sprite_data( 0x200000 );
 }
@@ -841,7 +840,6 @@ static DRIVER_INIT( aburner ){
 	sys16_patch_code(0xe770,0x00);
 	sys16_patch_code(0xe771,0x00);
 
-	machine_init_sys16_onetime();
 	sys16_bg1_trans = 1;
 	sys16_interleave_sprite_data( 0x200000 );
 }
@@ -855,7 +853,6 @@ static DRIVER_INIT( aburner2 ){
 	sys16_patch_code(0x14840,0x00);
 	sys16_patch_code(0x14841,0x00);
 
-	machine_init_sys16_onetime();
 	sys16_bg1_trans = 1;
 	sys16_interleave_sprite_data( 0x200000 );
 }
@@ -896,6 +893,9 @@ static MACHINE_DRIVER_START( aburner )
 	MDRV_GFXDECODE(sys16_gfxdecodeinfo)
 	MDRV_PALETTE_LENGTH(8192*3)
 
+	/* initilize system16 variables prior to driver_init and video_start */
+	machine_init_sys16_onetime();
+
 	MDRV_VIDEO_START(aburner)
 	MDRV_VIDEO_UPDATE(aburner)
 
@@ -908,6 +908,3 @@ MACHINE_DRIVER_END
 /*          rom       parent    machine   inp       init */
 GAME( 1987, aburner,  aburner2, aburner,  aburner,  aburner,  ROT0, "Sega", "After Burner (Japan)" )
 GAME( 1987, aburner2, 0,        aburner,  aburner2, aburner2, ROT0, "Sega", "After Burner II" )
-GAMEX(19??, loffire,  0,        aburner,  aburner,  aburner,  ROT0, "Sega", "Line of Fire", GAME_NOT_WORKING )
-GAMEX(19??, thndrbld, 0,        aburner,  thndrbld, aburner,  ROT0, "Sega", "Thunder Blade", GAME_NOT_WORKING )
-GAMEX(19??, thndrbdj, thndrbld, aburner,  thndrbld, thndrbdj, ROT0, "Sega", "Thunder Blade (Japan)", GAME_IMPERFECT_GRAPHICS )

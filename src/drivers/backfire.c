@@ -253,7 +253,7 @@ static READ32_HANDLER(backfire_eeprom_r)
 	/* some kind of screen indicator?  checked by backfira set before it will boot */
 	int backfire_screen = mame_rand()&1;
 	return ((EEPROM_read_bit()<<24) | readinputport(0)
-			| ((readinputport(2) & ~0x40) <<16) 
+			| ((readinputport(2) & ~0x40) <<16)
 			| ((readinputport(3) &  0x40) <<16)) ^  (backfire_screen << 26) ;
 }
 
@@ -436,7 +436,7 @@ INPUT_PORTS_START( backfire )
 	PORT_BIT( 0x8000, IP_ACTIVE_LOW, IPT_UNUSED )
 
 	PORT_START
-	PORT_BIT( 0x003f, IP_ACTIVE_LOW, IPT_UNUSED ) /* all other bits like low IN2 */ 
+	PORT_BIT( 0x003f, IP_ACTIVE_LOW, IPT_UNUSED ) /* all other bits like low IN2 */
 	PORT_BIT( 0x0040, IP_ACTIVE_HIGH, IPT_VBLANK )
 	PORT_BIT( 0x0080, IP_ACTIVE_LOW, IPT_UNUSED )
 
@@ -537,10 +537,10 @@ static MACHINE_DRIVER_START( backfire )
 	/* video hardware */
 	MDRV_VIDEO_ATTRIBUTES(VIDEO_TYPE_RASTER | VIDEO_NEEDS_6BITS_PER_GUN )
 	MDRV_SCREEN_SIZE(80*8, 32*8)
-	MDRV_VISIBLE_AREA(0*8, 80*8-1, 1*8, 31*8-1)
+  MDRV_VISIBLE_AREA(0*8, 40*8-1, 1*8, 31*8-1) /*tweaked for single screen only display */
 	MDRV_GFXDECODE(gfxdecodeinfo_backfire)
 	MDRV_PALETTE_LENGTH(2048)
-	MDRV_ASPECT_RATIO(8,3)
+	MDRV_ASPECT_RATIO(4,3) /*tweaked for single screen only display */
 
 	MDRV_VIDEO_START(backfire)
 	MDRV_VIDEO_UPDATE(backfire)

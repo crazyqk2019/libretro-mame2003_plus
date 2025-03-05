@@ -4,16 +4,7 @@
 #include "drz80_z80.h"
 #include "drz80.h"
 
-typedef struct {
-	struct DrZ80 regs;
-	unsigned int nmi_state;
-	unsigned int irq_state;
-	int previouspc;
-	int (*MAMEIrqCallback)(int int_level);
-} drz80_regs;
-
-static drz80_regs DRZ80;
-int drz80_ICount;
+drz80_regs DRZ80;
 
 #define INT_IRQ 0x01
 #define NMI_IRQ 0x02
@@ -129,10 +120,8 @@ void drz80_exit(void)
 int drz80_execute(int cycles)
 {
 	DRZ80.regs.cycles = cycles;
-	drz80_ICount = DRZ80.regs.cycles;
 	DrZ80Run(&DRZ80.regs, cycles);
 	change_pc16(DRZ80.regs.Z80PC - DRZ80.regs.Z80PC_BASE);
-	drz80_ICount = DRZ80.regs.cycles;
 	return (cycles-DRZ80.regs.cycles);
 }
 
@@ -144,7 +133,6 @@ void drz80_burn(int cycles)
 		int n = (cycles + 3) / 4;
 		//DRZ80.regs.Z80R += n;
 		DRZ80.regs.cycles -= 4 * n;
-		drz80_ICount = DRZ80.regs.cycles;
 	}
 }
 

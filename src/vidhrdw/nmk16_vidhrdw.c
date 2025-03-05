@@ -24,10 +24,14 @@ static struct mame_bitmap *background_bitmap;
 
 ***************************************************************************/
 
+/* not 100% right yet (check attract mode in raphero) */
 static UINT32 bg_scan(UINT32 col,UINT32 row,UINT32 num_cols,UINT32 num_rows)
 {
 	/* logical (col,row) -> memory offset */
-	return (row & 0x0f) + ((col & 0xff) << 4) + ((row & 0x70) << 8);
+
+	col = (col & 0xff) | ((col & 0x300)<<1);
+
+	return (row & 0x0f) + ((col & 0x6ff) << 4) + ((row & 0x70) << 8);
 }
 
 static UINT32 bg_scan_td2(UINT32 col,UINT32 row,UINT32 num_cols,UINT32 num_rows)
@@ -187,7 +191,7 @@ VIDEO_START( gunnail )
 
 VIDEO_START( macross2 )
 {
-	bg_tilemap = tilemap_create(macross_get_bg_tile_info,bg_scan,TILEMAP_OPAQUE,16,16,256,128);
+	bg_tilemap = tilemap_create(macross_get_bg_tile_info,bg_scan,TILEMAP_OPAQUE,16,16,1024,128);
 	tx_tilemap = tilemap_create(macross_get_tx_tile_info,tilemap_scan_cols,TILEMAP_TRANSPARENT,8,8,64,32);
 	spriteram_old = auto_malloc(0x1000);
 	spriteram_old2 = auto_malloc(0x1000);
@@ -372,6 +376,43 @@ WRITE16_HANDLER( vandyke_scroll_w )
 
 	tilemap_set_scrollx(bg_tilemap,0,scroll[0] * 256 + (scroll[1] >> 8));
 	tilemap_set_scrolly(bg_tilemap,0,scroll[2] * 256 + (scroll[3] >> 8));
+}
+
+static int mustang_bg_xscroll;
+
+WRITE16_HANDLER( twinactn_scroll_w )
+{
+/*  mame_printf_debug("mustang %04x %04x %04x\n",offset,data,mem_mask); */
+
+	switch (data & 0xff00)
+	{
+		case 0x0000:
+			mustang_bg_xscroll = (mustang_bg_xscroll & 0x00ff) | ((data & 0x00ff)<<8);
+			break;
+
+		case 0x0100:
+			mustang_bg_xscroll = (mustang_bg_xscroll & 0xff00) | (data & 0x00ff);
+			break;
+
+		case 0x0200:
+			break;
+
+		case 0x0300:
+			break;
+
+		default:
+			break;
+	}
+
+	tilemap_set_scrollx(bg_tilemap,0,mustang_bg_xscroll - videoshift);
+}
+
+WRITE16_HANDLER( manybloc_scroll_w )
+{
+	COMBINE_DATA(&gunnail_scrollram[offset]);
+
+	tilemap_set_scrollx(bg_tilemap,0,gunnail_scrollram[0x82/2]-videoshift);
+	tilemap_set_scrolly(bg_tilemap,0,gunnail_scrollram[0xc2/2]);
 }
 
 WRITE16_HANDLER( nmk_flipscreen_w )

@@ -307,20 +307,8 @@ READ16_HANDLER( midwunit_control_r )
 
 WRITE16_HANDLER( midtunit_paletteram_w )
 {
-	int newword, r, g, b;
-
 	COMBINE_DATA(&paletteram16[offset]);
-	newword = paletteram16[offset];
-
-	r = (newword >> 10) & 0x1f;
-	g = (newword >>  5) & 0x1f;
-	b = (newword      ) & 0x1f;
-
-	r = (r << 3) | (r >> 2);
-	g = (g << 3) | (g >> 2);
-	b = (b << 3) | (b >> 2);
-
-	palette_set_color(offset, r, g, b);
+	palette_set_color(offset, pal5bit(data >> 10), pal5bit(data >> 5), pal5bit(data >> 0));
 }
 
 
@@ -699,6 +687,9 @@ READ16_HANDLER( midtunit_dma_r )
  *           | ----------2----- | select top/bottom or left/right for reg 12/13
  */
 
+/* workaround so comic book offer in mk is correct, without breaking text in mk2 */
+static int mk_delay = 0;
+
 WRITE16_HANDLER( midtunit_dma_w )
 {
 	static const UINT8 register_map[2][16] =
@@ -710,6 +701,9 @@ WRITE16_HANDLER( midtunit_dma_w )
 	int command, bpp, regnum;
 	UINT32 gfxoffset;
 	int pixels = 0;
+
+	if (!strcmp(Machine->gamedrv->name,"mk"))
+		mk_delay = 1;
 
 	/* blend with the current register contents */
 	regnum = register_map[regbank][offset];
@@ -838,21 +832,21 @@ skipdma:
 	/* used to initiate the DMA. What they do is start the DMA, *then* set */
 	/* up the memory for it, which means that there must be some non-zero  */
 	/* delay that gives them enough time to build up the DMA command list  */
-   if (options.activate_dcs_speedhack)
-   {
-      if (command != 0x8000)
-         dma_callback(1);
-      else
-      {
-        TMS_SET_IRQ_LINE(CLEAR_LINE);
-        timer_set(TIME_IN_NSEC(41 * pixels), 0, dma_callback);
-      }
-   }
-   else
-   {
-      TMS_SET_IRQ_LINE(CLEAR_LINE);
-      timer_set(TIME_IN_NSEC(41 * pixels), 0, dma_callback);
-   }
+	if (FAST_DMA)
+	{
+		if (command != 0x8000)
+			dma_callback(1);
+		else
+		{
+			TMS_SET_IRQ_LINE(CLEAR_LINE);
+			timer_set(TIME_IN_NSEC((41+mk_delay) * pixels), 0, dma_callback);
+		}
+	}
+	else
+	{
+		TMS_SET_IRQ_LINE(CLEAR_LINE);
+		timer_set(TIME_IN_NSEC((41+mk_delay) * pixels), 0, dma_callback);
+	}
 
 	profiler_mark(PROFILER_END);
 }

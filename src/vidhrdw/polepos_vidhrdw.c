@@ -502,7 +502,7 @@ static void draw_sprites( struct mame_bitmap *bitmap, const struct rectangle *cl
 	for (i = 0; i < 64; i++, posmem += 2, sizmem += 2)
 	{
 		int sx = (posmem[1] & 0x3ff) - 0x40 + 4;
-		int sy = 512 - (posmem[0] & 0x1ff) + 1;	// sprites are buffered and delayed by one scanline
+		int sy = 512 - (posmem[0] & 0x1ff) + 1;	/* sprites are buffered and delayed by one scanline */
 		int sizex = (sizmem[1] & 0x3f00) >> 8;
 		int sizey = (sizmem[0] & 0x3f00) >> 8;
 		int code = sizmem[0] & 0x7f;
@@ -531,12 +531,30 @@ VIDEO_UPDATE( polepos )
 	draw_sprites(bitmap,cliprect);
 	tilemap_draw(bitmap,cliprect,tx_tilemap,0,0);
 
-	{
-		int in = readinputport( 0 );
-		static int lastin;
+{
+	int x,y,i;
 
-		if ((in ^ lastin) & 2)
-			usrintf_showmessage((in & 2) ? "LO" : "HI");
-		lastin = in;
+	char gear_high[] = "HI";
+	char gear_low[]  = "LO";
+
+	int in = readinputport( 0 );
+
+	/* draw on the original game. */
+
+	x = Machine->visible_area.min_x + 2;
+	y = Machine->visible_area.max_y - 8;
+
+	for (i = 0; i < 2; i++)
+	{
+		drawgfx(bitmap,Machine->uifont,
+				(in & 2) ? gear_low[i] : gear_high[i],
+				UI_COLOR_NORMAL,
+				0,0,
+				x,y,
+				cliprect,TRANSPARENCY_NONE,0);
+
+		x += Machine->uifontwidth;
 	}
+}
+
 }

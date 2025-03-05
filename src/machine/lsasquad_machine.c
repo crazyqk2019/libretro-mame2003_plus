@@ -1,5 +1,6 @@
 #include "driver.h"
 #include "cpu/z80/z80.h"
+#include "random.h"
 
 
 /* coin inputs are inverted in storming */
@@ -12,7 +13,8 @@ int lsasquad_invertcoin;
 
 ***************************************************************************/
 
-static int sound_nmi_enable,pending_nmi,sound_pending,sound_cmd,sound_result;
+static int sound_nmi_enable,pending_nmi,sound_cmd,sound_result;
+int lsasquad_sound_pending;
 
 static void nmi_callback(int param)
 {
@@ -37,7 +39,7 @@ WRITE_HANDLER( lsasquad_sh_nmi_enable_w )
 
 WRITE_HANDLER( lsasquad_sound_command_w )
 {
-	sound_pending |= 0x01;
+	lsasquad_sound_pending |= 0x01;
 	sound_cmd = data;
 /*logerror("%04x: sound cmd %02x\n",activecpu_get_pc(),data);*/
 	timer_set(TIME_NOW,data,nmi_callback);
@@ -45,21 +47,21 @@ WRITE_HANDLER( lsasquad_sound_command_w )
 
 READ_HANDLER( lsasquad_sh_sound_command_r )
 {
-	sound_pending &= ~0x01;
+	lsasquad_sound_pending &= ~0x01;
 /*logerror("%04x: read sound cmd %02x\n",activecpu_get_pc(),sound_cmd);*/
 	return sound_cmd;
 }
 
 WRITE_HANDLER( lsasquad_sh_result_w )
 {
-	sound_pending |= 0x02;
+	lsasquad_sound_pending |= 0x02;
 /*logerror("%04x: sound res %02x\n",activecpu_get_pc(),data);*/
 	sound_result = data;
 }
 
 READ_HANDLER( lsasquad_sound_result_r )
 {
-	sound_pending &= ~0x02;
+	lsasquad_sound_pending &= ~0x02;
 /*logerror("%04x: read sound res %02x\n",activecpu_get_pc(),sound_result);*/
 	return sound_result;
 }
@@ -68,7 +70,22 @@ READ_HANDLER( lsasquad_sound_status_r )
 {
 	/* bit 0: message pending for sound cpu */
 	/* bit 1: message pending for main cpu */
-	return sound_pending;
+	return lsasquad_sound_pending;
+}
+
+READ_HANDLER( daikaiju_sh_sound_command_r )
+{
+	lsasquad_sound_pending &= ~0x01;
+	lsasquad_sound_pending |= 0x02;
+/* logerror("%04x: read sound cmd %02x\n",activecpu_get_pc(),sound_cmd); */
+	return sound_cmd;
+}
+
+READ_HANDLER( daikaiju_sound_status_r )
+{
+	/* bit 0: message pending for sound cpu */
+	/* bit 1: message pending for main cpu */
+	return lsasquad_sound_pending^3;
 }
 
 
@@ -173,4 +190,21 @@ READ_HANDLER( lsasquad_mcu_status_r )
 	if (!mcu_sent) res |= 0x02;
 
 	return res ^ lsasquad_invertcoin;
+}
+
+READ_HANDLER( daikaiju_mcu_status_r )
+{
+	int res = input_port_3_r(0);
+
+	/* bit 0 = when 1, mcu is ready to receive data from main cpu */
+	/* bit 1 = when 0, mcu has sent data to the main cpu */
+
+	if (!main_sent)
+		res |= 0x01;
+	if (!mcu_sent)
+		res |= 0x02;
+	
+	res |=((lsasquad_sound_pending & 0x02)^2)<<3; /* inverted flag */
+	lsasquad_sound_pending &= ~0x02;
+	return res;
 }

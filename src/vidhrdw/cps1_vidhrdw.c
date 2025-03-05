@@ -331,6 +331,7 @@ static struct CPS1config cps1_config_table[]=
 	{"knightsu",BATTRY_4, 0,0,0, 0x0000,0xffff,0x0000,0xffff, 3 },
 	{"knightsj",BATTRY_4, 0,0,0, 0x0000,0xffff,0x0000,0xffff, 3 },
 	{"sf2ce",   NOBATTRY, 2,2,2, 0x0000,0xffff,0x0000,0xffff },
+	{"sf2mix",   NOBATTRY, 2,2,2, 0x0000,0xffff,0x0000,0xffff },
 	{"sf2ceua", NOBATTRY, 2,2,2, 0x0000,0xffff,0x0000,0xffff },
 	{"sf2ceub", NOBATTRY, 2,2,2, 0x0000,0xffff,0x0000,0xffff },
 	{"sf2ceuc", NOBATTRY, 2,2,2, 0x0000,0xffff,0x0000,0xffff },
@@ -385,30 +386,54 @@ static struct CPS1config cps1_config_table[]=
     /* CPS Changer */
 	{"wofch",   NOBATTRY, 0,0,0, 0x0000,0xffff,0x0000,0xffff },
 
+
     /* CPS2 games */
-	{"cps2",    NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff },
-	{"ssf2",    NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
-	{"ssf2u",   NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
-	{"ssf2a",   NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
-	{"ssf2ar1", NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
-	{"ssf2j",   NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
-	{"ssf2jr1", NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
-	{"ssf2jr2", NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
-	{"ssf2tb",  NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
-	{"ssf2tbj", NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
-	{"ssf2t",   NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff, 9 },
-	{"ssf2tu",  NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff, 9 },
-	{"ssf2tur1",NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff, 9 },
-	{"ssf2ta",  NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff, 9 },
-	{"ssf2xj",  NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff, 9 },
-	{"hsf2a",   NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff, 9 },
-	{"xmcota",  NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
-	{"xmcotau", NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
-	{"xmcotah", NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
-	{"xmcotaj", NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
-	{"xmcotaj1",NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
-	{"xmcotajr",NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
-	{"xmcotaa", NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
+	{"cps2",     NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff },
+	{"hsf2a",    NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff, 9 },
+	{"hsf2j1",   NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff, 9 },
+	{"hsf2j",    NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff, 9 },
+	{"hsf2",     NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff, 9 },
+	{"ssf2a",    NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
+	{"ssf2ar1",  NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
+	{"ssf2h",    NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
+	{"ssf2j",    NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
+	{"ssf2jr1",  NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
+	{"ssf2jr2",  NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
+	{"ssf2",     NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
+	{"ssf2r1",   NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
+	{"ssf2ta",   NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff, 9 },
+	{"ssf2tbj",  NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
+	{"ssf2tb",   NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
+	{"ssf2t",    NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff, 9 },
+	{"ssf2th",   NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff, 9 },
+	{"ssf2tu",   NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff, 9 },
+	{"ssf2tur1", NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff, 9 },
+	{"ssf2u",    NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
+	{"ssf2us2",  NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff,9 },
+	{"ssf2xj",   NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff, 9 },
+	{"ssf2xjr1", NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff, 9 },
+	{"ssf2xjr1r",NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff, 9 },
+	{"xmcota",   NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
+	{"xmcotar1", NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
+	{"xmcotau",  NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
+	{"xmcotab",  NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
+	{"xmcotah",  NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
+	{"xmcotahr1",NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
+	{"xmcotaj",  NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
+	{"xmcotaj1", NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
+	{"xmcotaj2", NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
+	{"xmcotaj3", NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
+	{"xmcotajr", NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
+	{"xmcotaa",  NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
+	{"xmcotaar1",NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
+	{"xmcotaar2",NOBATTRY, 4,4,4, 0x0000,0xffff,0x0000,0xffff, 8 },
+	{"ssf2tb",   NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
+	{"ssf2tbr1", NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
+	{"ssf2tbu",  NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
+	{"ssf2tbj",  NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
+	{"ssf2tbj1", NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
+	{"ssf2tba",  NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
+	{"ssf2tbh",  NOBATTRY, 4,4,0, 0x0000,0xffff,0x0000,0xffff },
 	{0}		/* End of table */
 };
 
@@ -731,7 +756,7 @@ static void unshuffle(UINT64 *buf,int len)
 	}
 }
 
-static void cps2_gfx_decode(void)
+void cps2_gfx_decode(void)
 {
 	const int banksize=0x200000;
 	int size=memory_region_length(REGION_GFX1);
@@ -1700,10 +1725,10 @@ void cps2_render_sprites(struct mame_bitmap *bitmap,const struct rectangle *clip
 
 
 
-
 void cps1_render_stars(struct mame_bitmap *bitmap,const struct rectangle *cliprect)
 {
 	int offs;
+	int cnt;
 	UINT8 *stars_rom = memory_region(REGION_GFX2);
 
 	if (!stars_rom && (cps1_stars_enabled[0] || cps1_stars_enabled[1]))
@@ -1719,7 +1744,7 @@ void cps1_render_stars(struct mame_bitmap *bitmap,const struct rectangle *clipre
 		for (offs = 0;offs < stars_rom_size/2;offs++)
 		{
 			int col = stars_rom[8*offs+4];
-			if (col != 0x0f)
+			if ((col & 0x1f) != 0x0f)
 			{
 				int sx = (offs / 256) * 32;
 				int sy = (offs % 256);
@@ -1731,7 +1756,8 @@ void cps1_render_stars(struct mame_bitmap *bitmap,const struct rectangle *clipre
 					sy = 255 - sy;
 				}
 
-				col = ((col & 0xe0) >> 1) + (cpu_getcurrentframe()/16 & 0x0f);
+        cnt = (cpu_getcurrentframe() / 16 ) % ((col & 0x80) ? 15 : 16);
+				col = ((col & 0xe0) >> 1) + cnt;
 
 				if (sx >= cliprect->min_x && sx <= cliprect->max_x &&
 					sy >= cliprect->min_y && sy <= cliprect->max_y)
@@ -1745,7 +1771,7 @@ void cps1_render_stars(struct mame_bitmap *bitmap,const struct rectangle *clipre
 		for (offs = 0;offs < stars_rom_size/2;offs++)
 		{
 			int col = stars_rom[8*offs];
-			if (col != 0x0f)
+	        if ((col & 0x1f) != 0x0f)
 			{
 				int sx = (offs / 256) * 32;
 				int sy = (offs % 256);
@@ -1757,7 +1783,8 @@ void cps1_render_stars(struct mame_bitmap *bitmap,const struct rectangle *clipre
 					sy = 255 - sy;
 				}
 
-				col = ((col & 0xe0) >> 1) + (cpu_getcurrentframe()/16 & 0x0f);
+				cnt = (cpu_getcurrentframe() / 16 ) % ((col & 0x80) ? 15 : 16);
+				col = ((col & 0xe0) >> 1) + cnt;
 
 				if (sx >= cliprect->min_x && sx <= cliprect->max_x &&
 					sy >= cliprect->min_y && sy <= cliprect->max_y)
@@ -1961,5 +1988,3 @@ void cps2_objram_latch(void)
 	cps2_set_sprite_priorities();
 	memcpy(cps2_buffered_obj, cps2_objbase(), cps2_obj_size);
 }
-
-    

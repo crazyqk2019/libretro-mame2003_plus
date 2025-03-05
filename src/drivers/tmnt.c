@@ -304,7 +304,7 @@ READ_HANDLER( tmnt_sres_r )
 WRITE_HANDLER( tmnt_sres_w )
 {
 	/* bit 1 resets the UPD7795C sound chip */
-	UPD7759_reset_w(0, data & 2);
+	upd7759_reset_w(0, data & 2);
 
 	/* bit 2 plays the title music */
 	if (data & 0x04)
@@ -346,15 +346,14 @@ static int tmnt_decode_sample(const struct MachineSound *msound)
 	 *	(Sound info courtesy of Dave <dave@finalburn.com>)
 	 */
 
-	for (i = 0;i < 0x40000;i++)
+	for (i = 0; i < 0x40000; i++)
 	{
-		int val = source[2*i] + source[2*i+1] * 256;
+		int val = source[2 * i] + source[2 * i + 1] * 256;
 		int expo = val >> 13;
+		val = (val >> 3) & (0x3ff); /* 10 bit, Max Amplitude 0x400 */
+		val -= 0x200;                   /* Centralize value */
 
-	  	val = (val >> 3) & (0x3ff);	/* 10 bit, Max Amplitude 0x400 */
-		val -= 0x200;					/* Centralize value	*/
-
-		val <<= (expo-3);
+		val = (val << expo) >> 3;
 
 		dest[i] = val;
 	}
@@ -1393,7 +1392,7 @@ static MEMORY_READ_START( tmnt_s_readmem )
 	{ 0xa000, 0xa000, soundlatch_r },
 	{ 0xb000, 0xb00d, K007232_read_port_0_r },
 	{ 0xc001, 0xc001, YM2151_status_port_0_r },
-	{ 0xf000, 0xf000, UPD7759_0_busy_r },
+	{ 0xf000, 0xf000, upd7759_0_busy_r },
 MEMORY_END
 
 static MEMORY_WRITE_START( tmnt_s_writemem )
@@ -1403,8 +1402,8 @@ static MEMORY_WRITE_START( tmnt_s_writemem )
 	{ 0xb000, 0xb00d, K007232_write_port_0_w  },
 	{ 0xc000, 0xc000, YM2151_register_port_0_w },
 	{ 0xc001, 0xc001, YM2151_data_port_0_w },
-	{ 0xd000, 0xd000, UPD7759_0_port_w },
-	{ 0xe000, 0xe000, UPD7759_0_start_w },
+	{ 0xd000, 0xd000, upd7759_0_port_w },
+	{ 0xe000, 0xe000, upd7759_0_start_w },
 MEMORY_END
 
 static MEMORY_READ_START( punkshot_s_readmem )
@@ -2416,7 +2415,7 @@ static struct YM2151interface ym2151_interface =
 {
 	1,			/* 1 chip */
 	3579545,	/* 3.579545 MHz */
-	{ YM3012_VOL(100,MIXER_PAN_LEFT,100,MIXER_PAN_RIGHT) },
+	{ YM3012_VOL(60,MIXER_PAN_LEFT,60,MIXER_PAN_RIGHT) },
 	{ 0 }
 };
 
@@ -2431,16 +2430,16 @@ static struct K007232_interface k007232_interface =
 	1,		/* number of chips */
 	3579545,	/* clock */
 	{ REGION_SOUND1 },	/* memory regions */
-	{ K007232_VOL(20,MIXER_PAN_CENTER,20,MIXER_PAN_CENTER) },	/* volume */
+	{ K007232_VOL(30,MIXER_PAN_CENTER,30,MIXER_PAN_CENTER) },	/* volume */
 	{ volume_callback }	/* external port callback */
 };
 
-static struct UPD7759_interface upd7759_interface =
+static struct upd7759_interface upd7759_interface =
 {
 	1,		/* number of chips */
+	{ UPD7759_STANDARD_CLOCK },
 	{ 60 }, /* volume */
 	{ REGION_SOUND2 },		/* memory region */
-	UPD7759_STANDALONE_MODE,		/* chip mode */
 	{0}
 };
 

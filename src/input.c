@@ -14,11 +14,6 @@
 /***************************************************************************/
 /* Codes */
 
-/* Subtype of codes */
-#define CODE_TYPE_NONE 0U /* code not assigned */
-#define CODE_TYPE_KEYBOARD 1U /* keyboard code */
-#define CODE_TYPE_JOYSTICK 2U /* joystick code */
-
 /* Informations for every input code */
 struct code_info {
 	int memory; /* boolean memory */
@@ -87,12 +82,15 @@ static INLINE const struct JoystickInfo* internal_oscode_find_joystick(unsigned 
 {
 	const struct JoystickInfo *joyinfo;
 	joyinfo = osd_get_joy_list();
+	/*log_cb(RETRO_LOG_DEBUG, "checking for oscode: %i\n", oscode);*/
 	while (joyinfo->name)
 	{
+		/*log_cb(RETRO_LOG_DEBUG, "examining code: %i | name: %s\n", joyinfo->code, joyinfo->name);*/
 		if (joyinfo->code == oscode)
 			return joyinfo;
 		++joyinfo;
 	}
+	/*log_cb(RETRO_LOG_DEBUG, "oscode not found\n");*/
 	return 0;
 }
 
@@ -125,6 +123,11 @@ static int internal_oscode_find(unsigned oscode, unsigned type)
 
 	/* oscode not found */
 	return CODE_NONE;
+}
+
+int oscode_find(unsigned oscode, unsigned type)
+{
+  return internal_oscode_find(oscode, type);
 }
 
 /* Add a new oscode in the table */
@@ -257,7 +260,7 @@ static const char* internal_code_name(InputCode code)
 }
 
 /* Update the code table */
-static void internal_code_update(void)
+void internal_code_update(void)
 {
   const struct KeyboardInfo *keyinfo;
   const struct JoystickInfo *joyinfo;
@@ -585,6 +588,33 @@ void seq_set_5(InputSeq* a, InputCode code1, InputCode code2, InputCode code3, I
 		(*a)[j] = CODE_NONE;
 }
 
+void seq_set_6(InputSeq* a, InputCode code1, InputCode code2, InputCode code3, InputCode code4, InputCode code5, InputCode code6)
+{
+	int j;
+	(*a)[0] = code1;
+	(*a)[1] = code2;
+	(*a)[2] = code3;
+	(*a)[3] = code4;
+	(*a)[4] = code5;
+	(*a)[5] = code6;
+	for(j=6;j<SEQ_MAX;++j)
+		(*a)[j] = CODE_NONE;
+}
+
+void seq_set_7(InputSeq* a, InputCode code1, InputCode code2, InputCode code3, InputCode code4, InputCode code5, InputCode code6, InputCode code7)
+{
+	int j;
+	(*a)[0] = code1;
+	(*a)[1] = code2;
+	(*a)[2] = code3;
+	(*a)[3] = code4;
+	(*a)[4] = code5;
+	(*a)[5] = code6;
+	(*a)[6] = code7;
+	for(j=7;j<SEQ_MAX;++j)
+		(*a)[j] = CODE_NONE;
+}
+
 void seq_copy(InputSeq* a, InputSeq* b)
 {
 	int j;
@@ -685,7 +715,12 @@ static InputCode record_seq[SEQ_MAX]; /* buffer for key recording */
 static int record_count; /* number of key/joy press recorded */
 static clock_t record_last; /* time of last key/joy press */
 
+/* Windows out of spec workaround */
+#if defined WIN32 || (defined _WIN64) || (defined _WINDOWS)
 #define RECORD_TIME (CLOCKS_PER_SEC*2/3) /* max time between key press */
+#else
+#define RECORD_TIME (CLOCKS_PER_SEC/8) /* max time between key press */
+#endif
 
 /* Start a sequence recording */
 void seq_read_async_start(void)

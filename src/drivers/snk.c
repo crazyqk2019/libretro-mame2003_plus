@@ -219,6 +219,7 @@ Credits (in alphabetical order)
 #include "vidhrdw/generic.h"
 #include "cpu/z80/z80.h"
 #include "snk.h"
+#include "ost_samples.h"
 
 /*********************************************************************/
 /* Variables and Interrupt Handlers Common to All SNK Triple Z80 Games*/
@@ -385,18 +386,43 @@ static int snk_rot12( int which ){
 	int value = readinputport(which+1);
 	int joydir = value>>4;
 	static int old_joydir[2];
+	static int old_dial_select[2];
 	static int dial_select[2];
 
-	int delta = (joydir - old_joydir[which])&0xf;
-	old_joydir[which] = joydir;
-
-	if( delta<=7 && delta>=1 ){
-		if( dial_select[which]==12 ) dial_select[which] = 0;
-		else dial_select[which]++;
+	/* added to compensate for Guerilla War bug fix noted above.
+	** When dial_select is used to point to invalid 0xf0 (when set to 6),
+	** in the frame after dial select was set to 6,
+	** move to the next valid setting in the rotation
+	** the character was supposed to rotate to, 5 or 7
+	** which is used to point to 0x50 or 0x60 in dial_12.
+	*/
+	if ( dial_select[which] == 6 ){
+		if ( old_dial_select[which] < dial_select[which] ){
+			old_dial_select[which] = dial_select[which];
+			dial_select[which]++;
+		}
+		else {
+			old_dial_select[which] = dial_select[which];
+			dial_select[which]--;
+		}
 	}
-	else if( delta > 8 ){
-		if( dial_select[which]==0 ) dial_select[which] = 12;
-		else dial_select[which]--;
+	else {
+		int delta = (joydir - old_joydir[which])&0xf;
+		old_joydir[which] = joydir;
+		if( delta<=7 && delta>=1 ){
+			if( dial_select[which]==12 ) dial_select[which] = 0;
+			else {
+				old_dial_select[which] = dial_select[which];
+				dial_select[which]++;
+			}
+		}
+		else if( delta > 8 ){
+			if( dial_select[which]==0 ) dial_select[which] = 12;
+			else {
+				old_dial_select[which] = dial_select[which];
+				dial_select[which]--;
+			}
+		}
 	}
 
 	return (value&0xf) | dial_12[dial_select[which]];
@@ -491,7 +517,12 @@ static struct YM3812interface ym3812_interface = {
 
 static WRITE_HANDLER( snk_soundlatch_w ){
 	snk_sound_register |= 0x08 | 0x04;
-	soundlatch_w( offset, data );
+
+	if( ost_support_enabled(OST_SUPPORT_IKARI) ) {
+		if(generate_ost_sound( data )) soundlatch_w( offset, data );
+	}
+	else
+		soundlatch_w( offset, data );
 }
 
 static READ_HANDLER( snk_soundlatch_clear_r ){ /* TNK3 */
@@ -1054,7 +1085,7 @@ static MACHINE_DRIVER_START( athena )
 	MDRV_CPU_ADD(Z80, 4000000)
 	MDRV_CPU_FLAGS(CPU_AUDIO_CPU)
 	MDRV_CPU_MEMORY(YM3526_YM3526_readmem_sound,YM3526_YM3526_writemem_sound)
-	MDRV_CPU_VBLANK_INT(irq0_line_hold,1)
+	MDRV_CPU_VBLANK_INT(irq0_line_hold,2)
 
 	MDRV_FRAMES_PER_SECOND(60)
 	MDRV_VBLANK_DURATION(DEFAULT_REAL_60HZ_VBLANK_DURATION)
@@ -1109,6 +1140,8 @@ static MACHINE_DRIVER_START( ikari )
 
 	/* sound hardware */
 	MDRV_SOUND_ADD(YM3526, ym3526_ym3526_interface)
+
+	MDRV_INSTALL_OST_SUPPORT(OST_SUPPORT_IKARI)
 MACHINE_DRIVER_END
 
 

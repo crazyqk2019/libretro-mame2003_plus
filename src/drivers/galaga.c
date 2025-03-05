@@ -741,14 +741,14 @@ static WRITE_HANDLER( bosco_latch_w )
 }
 
 
-static READ_HANDLER( in0_l )	{ return readinputport(0); }		// fire and start buttons
-static READ_HANDLER( in0_h )	{ return readinputport(0) >> 4; }	// coins
-static READ_HANDLER( in1_l )	{ return readinputport(1); }		// P1 joystick
-static READ_HANDLER( in1_h )	{ return readinputport(1) >> 4; }	// P2 joystick
-static READ_HANDLER( dipA_l )	{ return readinputport(2); }		// dips A
-static READ_HANDLER( dipA_h )	{ return readinputport(2) >> 4; }	// dips A
-static READ_HANDLER( dipB_l )	{ return readinputport(3); }		// dips B
-static READ_HANDLER( dipB_h )	{ return readinputport(3) >> 4; }	// dips B
+static READ_HANDLER( in0_l )	{ return readinputport(0); }		/* fire and start buttons */
+static READ_HANDLER( in0_h )	{ return readinputport(0) >> 4; }	/* coins */
+static READ_HANDLER( in1_l )	{ return readinputport(1); }		/* P1 joystick */
+static READ_HANDLER( in1_h )	{ return readinputport(1) >> 4; }	/* P2 joystick */
+static READ_HANDLER( dipA_l )	{ return readinputport(2); }		/* dips A */
+static READ_HANDLER( dipA_h )	{ return readinputport(2) >> 4; }	/* dips A */
+static READ_HANDLER( dipB_l )	{ return readinputport(3); }		/* dips B */
+static READ_HANDLER( dipB_h )	{ return readinputport(3) >> 4; }	/* dips B */
 static WRITE_HANDLER( out_0 )
 {
 	set_led_status(1,data & 1);
@@ -1012,7 +1012,7 @@ MEMORY_END
 static MEMORY_READ_START( readmem4_dzigzag )
     { 0x0000, 0x0fff, MRA_ROM },
 	{ 0x1000, 0x107f, MRA_RAM },
-	{ 0x4000, 0x4007, MRA_RAM },	// dip switches? bits 0 & 1 used
+	{ 0x4000, 0x4007, MRA_RAM },	/* dip switches? bits 0 & 1 used */
 MEMORY_END
 
 static MEMORY_WRITE_START( writemem4_dzigzag )
@@ -1834,75 +1834,58 @@ static struct GfxDecodeInfo gfxdecodeinfo_digdug[] =
 };
 
 
-
+/* The resistance path of the namco sound is 16k compared to
+ * the 10k of the highest gain 54xx filter. Giving a 10/16 gain.
+ */
 static struct namco_interface namco_interface =
 {
 	18432000/6/32,	/* 96 kHz sample rate */
 	3,				/* number of voices */
-	100,			/* playback volume */
+	90*10/16,		/* playback volume */
 	REGION_SOUND1	/* memory region */
 };
 
+/* Only used by bosco.  After filtering the 4V 52xx output,
+ * the signal is 1V, or 25%.  The relative volume between
+ * 52xx & 54xx is the same.
+ */
 static struct namco_52xx_interface namco_52xx_interface =
 {
 	18432000/12,	/* 1.536 MHz */
-	50,				/* volume */
-	REGION_SOUND2	/* memory region */
+	80,				/* volume */
+	REGION_SOUND2,	/* memory region */
+	4000,			/* Playback frequency - from 555 timer 6M */
+	80,				/* High pass filter fc */
+	0.3,			/* High pass filter Q */
+	2400,			/* Low pass filter fc */
+	0.9,			/* Low pass filter Q */
+	.25				/* Combined gain of both filters */
 };
 
 static struct namco_54xx_interface namco_54xx_interface =
 {
 	18432000/12,		/* 1.536 MHz */
-	{ 100, 100, 100 }	/* volume of the three outputs */
+	80,				/* volume */
+	{ RES_K(150),	RES_K(47),		RES_K(100) },	/* R42, R33, R24 */
+	{ RES_K(22),	RES_K(10),		RES_K(22) },	/* R41, R34, R23 */
+	{ RES_K(470),	RES_K(150),		RES_K(220) },	/* R40, R35, R22 */
+	{ RES_K(10),	RES_K(33),		RES_K(33)},		/* R37, R36, R21 */
+	{ CAP_U(.01),	CAP_U(.01),		CAP_U(.001) },	/* C27, C29, C31 */
+	{ CAP_U(.01),	CAP_U(.01),		CAP_U(.001) },	/* C26, C28, C30 */
 };
 
 static const char *bosco_sample_names[] =
 {
 	"*bosco",
-	"bigbang.wav",
-	"midbang.wav",
 	"shot.wav",
 	0	/* end of array */
 };
 
 static struct Samplesinterface samples_interface_bosco =
 {
-	3,	/* 3 channels */
-	100,	/* volume */
+	1,	/* 3 channel1 */
+	95,	/* volume */
 	bosco_sample_names
-};
-
-static const char *galaga_sample_names[] =
-{
-	"*galaga",
-	"bang.wav",
-	"bang.wav",
-//	"init.wav",
-	0       /* end of array */
-};
-
-static struct Samplesinterface samples_interface_galaga =
-{
-	3,	/* 3 channels */
-	80,	/* volume */
-	galaga_sample_names
-};
-
-static const char *xevious_sample_names[] =
-{
-	"*xevious",
-	"explo2.wav",	/* Solvalou explosion */
-	"explo3.wav",	/* credit */
-	"explo4.wav",	/* Garu Zakato explosion */
-	"explo1.wav",	/* ground target explosion */
-	0	/* end of array */
-};
-
-struct Samplesinterface samples_interface_xevious =
-{
-	3,	/* 3 channels */
-	80,	/* volume */
-	xevious_sample_names
 };
 
 static const char *battles_sample_names[] =
@@ -2000,7 +1983,6 @@ static MACHINE_DRIVER_START( galaga )
 
 	/* sound hardware */
 	MDRV_SOUND_ADD(NAMCO_15XX, namco_interface)
-	MDRV_SOUND_ADD(SAMPLES, samples_interface_galaga)
 	MDRV_SOUND_ADD(NAMCO_54XX, namco_54xx_interface)
 MACHINE_DRIVER_END
 
@@ -2049,8 +2031,7 @@ static MACHINE_DRIVER_START( xevious )
 
 	/* sound hardware */
 	MDRV_SOUND_ADD(NAMCO_15XX, namco_interface)
-	MDRV_SOUND_ADD_TAG("samples", SAMPLES, samples_interface_xevious)
-	MDRV_SOUND_ADD(NAMCO_54XX, namco_54xx_interface)
+    MDRV_SOUND_ADD_TAG("54xx",NAMCO_54XX, namco_54xx_interface)
 MACHINE_DRIVER_END
 
 static MACHINE_DRIVER_START( battles )
@@ -2068,7 +2049,8 @@ static MACHINE_DRIVER_START( battles )
 	MDRV_PALETTE_INIT(battles)
 
 	/* sound hardware */
-	MDRV_SOUND_REPLACE("samples", SAMPLES, samples_interface_battles)
+    MDRV_SOUND_REMOVE("54xx")
+	MDRV_SOUND_ADD(SAMPLES, samples_interface_battles)
 MACHINE_DRIVER_END
 
 
@@ -2517,10 +2499,10 @@ ROM_START( gatsbee )
 	ROM_LOAD( "4.4e",	      0x3000, 0x1000, CRC(bf9f613b) SHA1(41c852fc77f0f35bf48a5b81a19234ed99871c89) )
 
 	ROM_REGION( 0x10000, REGION_CPU2, 0 )     /* 64k for the second CPU */
-	ROM_LOAD( "gg1-5",        0x0000, 0x1000, CRC(3102fccd) SHA1(d29b68d6aab3217fa2106b3507b9273ff3f927bf) )	// 5.4j
+	ROM_LOAD( "gg1-5",        0x0000, 0x1000, CRC(3102fccd) SHA1(d29b68d6aab3217fa2106b3507b9273ff3f927bf) )	/* 5.4j */
 
 	ROM_REGION( 0x10000, REGION_CPU3, 0 )     /* 64k for the third CPU  */
-	ROM_LOAD( "gg1-7",        0x0000, 0x1000, CRC(8995088d) SHA1(d6cb439de0718826d1a0363c9d77de8740b18ecf) )	// 7.4k
+	ROM_LOAD( "gg1-7",        0x0000, 0x1000, CRC(8995088d) SHA1(d6cb439de0718826d1a0363c9d77de8740b18ecf) )	/* 7.4k */
 
 	ROM_REGION( 0x10000, REGION_CPU4, 0 )	/* 64k for a Z80 which emulates the custom I/O chip (not used) */
 	ROM_LOAD( "gallag.6",     0x0000, 0x1000, CRC(001b70bc) SHA1(b465eee91e75257b7b049d49c0064ab5fd66c576) )
@@ -2601,7 +2583,7 @@ ROM_START( xevious )
 	ROM_LOAD( "xvi_16.4n",    0x4000, 0x1000, CRC(605ca889) SHA1(3bf380ef76c03822a042ecc73b5edd4543c268ce) )	/* sprite set #3, planes 0/1 */
 	ROM_LOAD( "xvi_18.4r",    0x5000, 0x2000, CRC(02417d19) SHA1(b5f830dd2cf25cf154308d2e640f0ecdcda5d8cd) )	/* sprite set #1, plane 2, set #2, plane 2 */
 	/* 0x7000-0x8fff  will be unpacked from 0x5000-0x6fff */
-	ROM_FILL(                 0x9000, 0x1000, 0x00 )	// empty space to decode sprite set #3 as 3 bits per pixel
+	ROM_FILL(                 0x9000, 0x1000, 0x00 )	/* empty space to decode sprite set #3 as 3 bits per pixel */
 
 	ROM_REGION( 0x4000, REGION_GFX4, 0 )	/* background tilemaps */
 	ROM_LOAD( "xvi_9.2a",     0x0000, 0x1000, CRC(57ed9879) SHA1(3106d1aacff06cf78371bd19967141072b32b7d7) )
@@ -2646,7 +2628,7 @@ ROM_START( xeviousa )
 	ROM_LOAD( "xvi_16.4n",    0x4000, 0x1000, CRC(605ca889) SHA1(3bf380ef76c03822a042ecc73b5edd4543c268ce) )	/* sprite set #3, planes 0/1 */
 	ROM_LOAD( "xvi_18.4r",    0x5000, 0x2000, CRC(02417d19) SHA1(b5f830dd2cf25cf154308d2e640f0ecdcda5d8cd) )	/* sprite set #1, plane 2, set #2, plane 2 */
 	/* 0x7000-0x8fff  will be unpacked from 0x5000-0x6fff */
-	ROM_FILL(                 0x9000, 0x1000, 0x00 )	// empty space to decode sprite set #3 as 3 bits per pixel
+	ROM_FILL(                 0x9000, 0x1000, 0x00 )	/* empty space to decode sprite set #3 as 3 bits per pixel */
 
 	ROM_REGION( 0x4000, REGION_GFX4, 0 )	/* background tilemaps */
 	ROM_LOAD( "xvi_9.2a",     0x0000, 0x1000, CRC(57ed9879) SHA1(3106d1aacff06cf78371bd19967141072b32b7d7) )
@@ -2691,7 +2673,7 @@ ROM_START( xeviousb )
 	ROM_LOAD( "xvi_16.4n",    0x4000, 0x1000, CRC(605ca889) SHA1(3bf380ef76c03822a042ecc73b5edd4543c268ce) )	/* sprite set #3, planes 0/1 */
 	ROM_LOAD( "xvi_18.4r",    0x5000, 0x2000, CRC(02417d19) SHA1(b5f830dd2cf25cf154308d2e640f0ecdcda5d8cd) )	/* sprite set #1, plane 2, set #2, plane 2 */
 	/* 0x7000-0x8fff  will be unpacked from 0x5000-0x6fff */
-	ROM_FILL(                 0x9000, 0x1000, 0x00 )	// empty space to decode sprite set #3 as 3 bits per pixel
+	ROM_FILL(                 0x9000, 0x1000, 0x00 )	/* empty space to decode sprite set #3 as 3 bits per pixel */
 
 	ROM_REGION( 0x4000, REGION_GFX4, 0 )	/* background tilemaps */
 	ROM_LOAD( "xvi_9.2a",     0x0000, 0x1000, CRC(57ed9879) SHA1(3106d1aacff06cf78371bd19967141072b32b7d7) )
@@ -2739,7 +2721,7 @@ ROM_START( xeviousc )
 	ROM_LOAD( "xvi_16.4n",    0x4000, 0x1000, CRC(605ca889) SHA1(3bf380ef76c03822a042ecc73b5edd4543c268ce) )	/* sprite set #3, planes 0/1 */
 	ROM_LOAD( "xvi_18.4r",    0x5000, 0x2000, CRC(02417d19) SHA1(b5f830dd2cf25cf154308d2e640f0ecdcda5d8cd) )	/* sprite set #1, plane 2, set #2, plane 2 */
 	/* 0x7000-0x8fff  will be unpacked from 0x5000-0x6fff */
-	ROM_FILL(                 0x9000, 0x1000, 0x00 )	// empty space to decode sprite set #3 as 3 bits per pixel
+	ROM_FILL(                 0x9000, 0x1000, 0x00 )	/* empty space to decode sprite set #3 as 3 bits per pixel */
 
 	ROM_REGION( 0x4000, REGION_GFX4, 0 )	/* background tilemaps */
 	ROM_LOAD( "xvi_9.2a",     0x0000, 0x1000, CRC(57ed9879) SHA1(3106d1aacff06cf78371bd19967141072b32b7d7) )
@@ -2787,7 +2769,7 @@ ROM_START( xevios )
 	ROM_LOAD( "xvi_16.4n",    0x4000, 0x1000, CRC(605ca889) SHA1(3bf380ef76c03822a042ecc73b5edd4543c268ce) )	/* sprite set #3, planes 0/1 */
 	ROM_LOAD( "16.8d",        0x5000, 0x2000, CRC(44262c04) SHA1(4291f83193d11064c2ba6a9af27951b93bb945c3) )	/* sprite set #1, plane 2, set #2, plane 2 */
 	/* 0x7000-0x8fff  will be unpacked from 0x5000-0x6fff */
-	ROM_FILL(                 0x9000, 0x1000, 0x00 )	// empty space to decode sprite set #3 as 3 bits per pixel
+	ROM_FILL(                 0x9000, 0x1000, 0x00 )	/* empty space to decode sprite set #3 as 3 bits per pixel */
 
 	ROM_REGION( 0x4000, REGION_GFX4, 0 )	/* background tilemaps */
 	ROM_LOAD( "10.1d",        0x0000, 0x1000, CRC(10baeebb) SHA1(c544c9e0bb7a1ef93b3f2c2c1397f659d5334373) )
@@ -2841,7 +2823,7 @@ ROM_START( battles )
 	ROM_LOAD( "xvi_16.4n",    0x4000, 0x1000, CRC(605ca889) SHA1(3bf380ef76c03822a042ecc73b5edd4543c268ce) )	/* sprite set #3, planes 0/1 */
 	ROM_LOAD( "xvi_18.4r",    0x5000, 0x2000, CRC(02417d19) SHA1(b5f830dd2cf25cf154308d2e640f0ecdcda5d8cd) )	/* sprite set #1, plane 2, set #2, plane 2 */
 	/* 0x7000-0x8fff  will be unpacked from 0x5000-0x6fff */
-	ROM_FILL(                 0x9000, 0x1000, 0x00 )	// empty space to decode sprite set #3 as 3 bits per pixel
+	ROM_FILL(                 0x9000, 0x1000, 0x00 )	/* empty space to decode sprite set #3 as 3 bits per pixel */
 
 	ROM_REGION( 0x4000, REGION_GFX4, 0 )	/* background tilemaps */
 	ROM_LOAD( "xvi_9.2a",     0x0000, 0x1000, CRC(57ed9879) SHA1(3106d1aacff06cf78371bd19967141072b32b7d7) )
@@ -2889,7 +2871,7 @@ ROM_START( sxevious )
 	ROM_LOAD( "xvi_16.4n",    0x4000, 0x1000, CRC(605ca889) SHA1(3bf380ef76c03822a042ecc73b5edd4543c268ce) )	/* sprite set #3, planes 0/1 */
 	ROM_LOAD( "xvi_18.4r",    0x5000, 0x2000, CRC(02417d19) SHA1(b5f830dd2cf25cf154308d2e640f0ecdcda5d8cd) )	/* sprite set #1, plane 2, set #2, plane 2 */
 	/* 0x7000-0x8fff  will be unpacked from 0x5000-0x6fff */
-	ROM_FILL(                 0x9000, 0x1000, 0x00 )	// empty space to decode sprite set #3 as 3 bits per pixel
+	ROM_FILL(                 0x9000, 0x1000, 0x00 )	/* empty space to decode sprite set #3 as 3 bits per pixel */
 
 	ROM_REGION( 0x4000, REGION_GFX4, 0 )	/* background tilemaps */
 	ROM_LOAD( "xvi_9.2a",     0x0000, 0x1000, CRC(57ed9879) SHA1(3106d1aacff06cf78371bd19967141072b32b7d7) )

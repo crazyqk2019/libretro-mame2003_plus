@@ -33,7 +33,7 @@
 
 #include <math.h>
 #include "driver.h"
-#include "namcona1.h" /* for namcona1_gametype; used for game-specific hacks */
+#include "namcona1.h"
 
 #define kTwelfthRootTwo 1.059463094
 #define FIXED_POINT_SHIFT (10) /* for mixing */
@@ -47,6 +47,7 @@ static INT16 *mpMixerBuffer;
 static INT32 *mpPitchTable;
 static data16_t *mpROM;
 static data16_t *mpMetaData;
+int namcona1_gametype;
 
 struct voice
 {
@@ -473,7 +474,7 @@ UpdateSequence( struct sequence *pSequence )
 					MapArgs( pSequence, bCommon, IgnoreUnknownOp );
 					break;
 
-				case 0x19: // one loop?
+				case 0x19: /* one loop? */
 					if (pSequence->count3 == 0)
 					{
 						pSequence->addr = ReadMetaDataWord(pSequence->addr);
@@ -486,11 +487,11 @@ UpdateSequence( struct sequence *pSequence )
 					}
 					break;
 
-				case 0x1b: // ?
+				case 0x1b: /* ? */
 					pSequence->addr += 2;
 					break;
 
-				case 0x1c: // ?
+				case 0x1c: /* ? */
 					pSequence->addr += 2;
 					break;
 
@@ -542,7 +543,7 @@ UpdateSequence( struct sequence *pSequence )
 					break;
 
 				default:
-					//printf( "? 0x%x\n", code&0x3f );
+					/*printf( "? 0x%x\n", code&0x3f ); */
 					*pStatus &= 0xff7f; /* clear "sequence-is-playing" flag */
 					break;
 				}
@@ -664,11 +665,11 @@ DumpSampleTable( FILE *f, int table, unsigned char *special )
 	{
 		fprintf( f, "%04x(%02x): %04x %04x %04x %04x %04x (len=%d)\n",
 			i, (i-iStart)/10,
-			ReadMetaDataWord(i+0*2), // flags
-			ReadMetaDataWord(i+1*2), // start
-			ReadMetaDataWord(i+2*2), // end
-			ReadMetaDataWord(i+3*2), // loop
-			ReadMetaDataWord(i+4*2), // freq
+			ReadMetaDataWord(i+0*2), /* flags */
+			ReadMetaDataWord(i+1*2), /* start */
+			ReadMetaDataWord(i+2*2), /* end */
+			ReadMetaDataWord(i+3*2), /* loop */
+			ReadMetaDataWord(i+4*2), /* freq */
 			ReadMetaDataWord(i+2*2)-ReadMetaDataWord(i+1*2) );
 		i+=5*2;
 		if( special[i] || special[i+1] ) break;
@@ -780,4 +781,3 @@ NAMCONA_sh_stop( void )
 	}
 	#endif
 } /* NAMCONA_sh_stop */
-

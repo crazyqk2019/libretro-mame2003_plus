@@ -3,12 +3,19 @@
 
 #include "cpuintrf.h"
 #include "osd_cpu.h"
+#include "drz80.h"
 
-extern int drz80_ICount;
+typedef struct {
+	struct DrZ80 regs;
+	unsigned int nmi_state;
+	unsigned int irq_state;
+	int previouspc;
+	int (*MAMEIrqCallback)(int int_level);
+} drz80_regs;
 
-#define DRZ80_IGNORE_INT  -1    /* Ignore interrupt */
-#define DRZ80_NMI_INT 	-2	/* Execute NMI */
-#define DRZ80_IRQ_INT 	-1000	/* Execute IRQ */
+extern  drz80_regs DRZ80;
+
+#define drz80_ICount DRZ80.regs.cycles
 
 extern void drz80_init(void);
 extern void drz80_reset (void *param);
@@ -41,4 +48,3 @@ extern void Interrupt(void); /* required for DrZ80 int hack */
 #endif
 
 #endif
-

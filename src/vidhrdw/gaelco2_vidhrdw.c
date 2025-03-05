@@ -524,12 +524,12 @@ VIDEO_UPDATE( bang )
         /* 1P Gun */
         posx = readinputport(3)*320/256;
         posy = readinputport(5)*240/256;
-        draw_crosshair(bitmap, posx, posy + 0x0c, cliprect);
+        draw_crosshair(1, bitmap, posx, posy + 0x0c, cliprect);
 
         /* 2P Gun */
         posx = readinputport(4)*320/256;
         posy = readinputport(6)*240/256;
-        draw_crosshair(bitmap, posx, posy + 0x0c, cliprect);
+        draw_crosshair(2, bitmap, posx, posy + 0x0c, cliprect);
     }
 }
 
@@ -539,7 +539,7 @@ VIDEO_UPDATE( gaelco2_dual )
 {
 	int i;
 
-	int xoff0 = 0x14; // intro scenes align better with 0x13, but test screen is definitely 0x14
+	int xoff0 = 0x14; /* intro scenes align better with 0x13, but test screen is definitely 0x14 */
 	int xoff1 = xoff0 - 4;
 	int yoff0 = 0x01;
 	int yoff1 = 0x01;
@@ -592,7 +592,7 @@ VIDEO_UPDATE( gaelco2_dual )
 {
 	int i;
 
-	int xoff0 = 0x14; // intro scenes align better with 0x13, but test screen is definitely 0x14
+	int xoff0 = 0x14; /* intro scenes align better with 0x13, but test screen is definitely 0x14 */
 	int xoff1 = xoff0 - 4;
 	int yoff0 = 0x01;
 	int yoff1 = 0x01;

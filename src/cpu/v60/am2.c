@@ -1,6 +1,6 @@
 
-// AM2 Functions (for ReadAMAddress)
-// *********************************
+/* AM2 Functions (for ReadAMAddress) */
+/* ********************************* */
 
 static UINT32 am2Register(void)
 {
@@ -940,19 +940,19 @@ static UINT32 bam2DirectAddressDeferredIndexed(void)
 
 static UINT32 am2Immediate(void)
 {
-	// Fuck off LDPR
+	/* Fuck off LDPR */
 	return am1Immediate();
 }
 
 static UINT32 am2ImmediateQuick(void)
 {
-	// fuck off LDPR
+	/* fuck off LDPR */
 	return am1ImmediateQuick();
 }
 
 
-// AM2 Tables (for ReadAMAddress)
-// ******************************
+/* AM2 Tables (for ReadAMAddress) */
+/* ****************************** */
 
 static UINT32 am2Error1(void)
 {
@@ -1251,7 +1251,3 @@ static UINT32 (*const BAMTable2[2][8])(void) =
 		bam2Error1
 	}
 };
-
-
-
-

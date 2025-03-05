@@ -533,7 +533,6 @@ static MACHINE_INIT( hangon ){
 }
 
 static DRIVER_INIT( hangon ){
-	machine_init_sys16_onetime();
 	generate_gr_screen(512,1024,8,0,4,0x8000);
 }
 
@@ -568,7 +567,10 @@ static MACHINE_DRIVER_START( hangon )
 	MDRV_VISIBLE_AREA(0*8, 40*8-1, 0*8, 28*8-1)
 	MDRV_GFXDECODE(sys16_gfxdecodeinfo)
 	MDRV_PALETTE_LENGTH(2048*ShadowColorsMultiplier)
-	
+
+	/* initilize system16 variables prior to driver_init and video_start */
+	machine_init_sys16_onetime();
+
 	MDRV_VIDEO_START(hangon)
 	MDRV_VIDEO_UPDATE(hangon)
 	
@@ -725,7 +727,6 @@ static MACHINE_INIT( harrier ){
 
 static DRIVER_INIT( sharrier )
 {
-	machine_init_sys16_onetime();
 	sys16_MaxShadowColors=NumOfShadowColors / 2;
 	sys16_interleave_sprite_data( 0x100000 );
 	generate_gr_screen(512,512,0,0,4,0x8000);
@@ -761,7 +762,10 @@ static MACHINE_DRIVER_START( sharrier )
 	MDRV_VISIBLE_AREA(0*8, 40*8-1, 0*8, 28*8-1)
 	MDRV_GFXDECODE(sys16_gfxdecodeinfo)
 	MDRV_PALETTE_LENGTH(2048*ShadowColorsMultiplier)
-	
+
+	/* initilize system16 variables prior to driver_init and video_start */
+	machine_init_sys16_onetime();
+
 	MDRV_VIDEO_START(hangon)
 	MDRV_VIDEO_UPDATE(hangon)
 	
@@ -1025,7 +1029,6 @@ static void endurob2_opcode_decode( void )
 
 static DRIVER_INIT( enduror )
 {
-	machine_init_sys16_onetime();
 	sys16_MaxShadowColors=NumOfShadowColors / 2;
 /*	sys16_MaxShadowColors=0;*/
 
@@ -1034,7 +1037,6 @@ static DRIVER_INIT( enduror )
 
 static DRIVER_INIT( endurobl )
 {
-	machine_init_sys16_onetime();
 	sys16_MaxShadowColors=NumOfShadowColors / 2;
 /*	sys16_MaxShadowColors=0;*/
 
@@ -1044,7 +1046,6 @@ static DRIVER_INIT( endurobl )
 
 static DRIVER_INIT( endurob2 )
 {
-	machine_init_sys16_onetime();
 	sys16_MaxShadowColors=NumOfShadowColors / 2;
 /*	sys16_MaxShadowColors=0;*/
 
@@ -1083,7 +1084,10 @@ static MACHINE_DRIVER_START( enduror )
 	MDRV_VISIBLE_AREA(0*8, 40*8-1, 0*8, 28*8-1)
 	MDRV_GFXDECODE(sys16_gfxdecodeinfo)
 	MDRV_PALETTE_LENGTH(2048*ShadowColorsMultiplier)
-	
+
+	/* initilize system16 variables prior to driver_init and video_start */
+	machine_init_sys16_onetime();
+
 	MDRV_VIDEO_START(hangon)
 	MDRV_VIDEO_UPDATE(hangon)
 	
@@ -1122,7 +1126,10 @@ static MACHINE_DRIVER_START( endurob2 )
 	MDRV_VISIBLE_AREA(0*8, 40*8-1, 0*8, 28*8-1)
 	MDRV_GFXDECODE(sys16_gfxdecodeinfo)
 	MDRV_PALETTE_LENGTH(2048*ShadowColorsMultiplier)
-	
+
+	/* initilize system16 variables prior to driver_init and video_start */
+	machine_init_sys16_onetime();
+
 	MDRV_VIDEO_START(hangon)
 	MDRV_VIDEO_UPDATE(hangon)
 	
@@ -1236,9 +1243,9 @@ ROM_START( enduror )
 	ROM_REGION( 0x10000, REGION_CPU3, 0 ) /* second 68000 CPU */
 	ROM_LOAD16_BYTE("7634.rom", 0x0000, 0x8000, CRC(3e07fd32) SHA1(7acb9e9712ecfe928c421c84dece783e75077746) )
 	ROM_LOAD16_BYTE("7635.rom", 0x0001, 0x8000, CRC(22f762ab) SHA1(70fa87da76c714db7213c42128a0b6a27644a1d4) )
-	// alternate version??
-//	ROM_LOAD16_BYTE("7634a.rom", 0x0000, 0x8000, CRC(aec83731) )
-//	ROM_LOAD16_BYTE("7635a.rom", 0x0001, 0x8000, CRC(b2fce96f) )
+	/* alternate version?? */
+/*	ROM_LOAD16_BYTE("7634a.rom", 0x0000, 0x8000, CRC(aec83731) ) */
+/*	ROM_LOAD16_BYTE("7635a.rom", 0x0001, 0x8000, CRC(b2fce96f) ) */
 
 	ROM_REGION( 0x40000, REGION_GFX3, 0 ) /* Road Graphics  (region size should be gr_bitmapwidth*256, 0 )*/
 	ROM_LOAD( "7633.rom", 0x0000, 0x8000, CRC(6f146210) SHA1(2f58f0c3563b434ed02700b9ca1545a696a5716e) )
@@ -1509,7 +1516,7 @@ INPUT_PORTS_START( enduror )
 		PORT_DIPNAME( 0x80, 0x00, DEF_STR( Demo_Sounds ) )
 		PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
 		PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	/*PORT_START	 // Y /*/
+	/*PORT_START	 /* Y */
 	/*PORT_ANALOG( 0xff, 0x0, IPT_AD_STICK_Y | IPF_CENTER , 100, 8, 0x0, 0xff )*/
 INPUT_PORTS_END
 

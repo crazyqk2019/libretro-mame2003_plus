@@ -1,6 +1,6 @@
 
-// AM3 Functions (for ReadAM)
-// **************************
+/* AM3 Functions (for ReadAM) */
+/* ************************** */
 
 static UINT32 am3Register(void)
 {
@@ -730,8 +730,8 @@ static UINT32 am3ImmediateQuick(void)
 
 
 
-// AM3 Tables (for ReadAMAddress)
-// ******************************
+/* AM3 Tables (for ReadAMAddress) */
+/* ****************************** */
 
 static UINT32 am3Error1(void)
 {
@@ -882,6 +882,3 @@ static UINT32 (*const AMTable3[2][8])(void) =
 		am3Error1
 	}
 };
-
-
-

@@ -258,6 +258,11 @@ static WRITE_HANDLER( m92_sound_status_w )
 		sound_status = (data<<8) | (sound_status&0xff);
 }
 
+static WRITE_HANDLER( m92_sound_reset_w )	/* Added sound reset line for IREM M92 */
+{
+  cpu_set_reset_line( 1, (data) ? CLEAR_LINE : ASSERT_LINE);
+}
+
 /*****************************************************************************/
 
 static MEMORY_READ_START( readmem )
@@ -323,7 +328,19 @@ static PORT_WRITE_START( writeport )
 	{ 0x88, 0x8f, m92_pf2_control_w },
 	{ 0x90, 0x97, m92_pf3_control_w },
 	{ 0x98, 0x9f, m92_master_control_w },
-/*	{ 0xc0, 0xc1, m92_unknown_w },	*/ /* sound related?*/
+/*	{ 0xc0, 0xc1, m92_sound_reset_w }, */ /* causes breakage with certain games */
+PORT_END
+
+static PORT_WRITE_START( psoldier_writeport )
+	{ 0x00, 0x01, m92_soundlatch_w },
+	{ 0x02, 0x03, m92_coincounter_w },
+	{ 0x20, 0x21, m92_bankswitch_w },
+	{ 0x40, 0x43, MWA_NOP }, /* Interrupt controller, only written to at bootup */
+	{ 0x80, 0x87, m92_pf1_control_w },
+	{ 0x88, 0x8f, m92_pf2_control_w },
+	{ 0x90, 0x97, m92_pf3_control_w },
+	{ 0x98, 0x9f, m92_master_control_w },
+	{ 0xc0, 0xc1, m92_sound_reset_w },
 PORT_END
 
 /******************************************************************************/
@@ -972,7 +989,7 @@ INPUT_PORTS_START( dsccr94j )
 	IREM_JOYSTICK_3_4(3)
 	IREM_JOYSTICK_3_4(4)
 	IREM_COINS
-	IREM_SYSTEM_DIPSWITCH_4PLAYERS
+	IREM_SYSTEM_DIPSWITCH_4PLAYERS /* Dip Switch 2, dip 2 is listed as "Don't Change" and is "OFF" */
 
 	PORT_START	/* Dip switch bank 1 */
 	PORT_DIPNAME( 0x03, 0x03, "Time" )
@@ -980,15 +997,21 @@ INPUT_PORTS_START( dsccr94j )
 	PORT_DIPSETTING(    0x03, "2:00" )
 	PORT_DIPSETTING(    0x02, "2:30" )
 	PORT_DIPSETTING(    0x01, "3:00" )
-	PORT_DIPNAME( 0x04, 0x04, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x04, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x08, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x10, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x0c, 0x0c, "Difficulty" )
+	PORT_DIPSETTING(    0x00, "Very Easy" )
+	PORT_DIPSETTING(    0x08, "Easy" )
+	PORT_DIPSETTING(    0x0c, "Normal" )
+	PORT_DIPSETTING(    0x04, "Hard" )
+	PORT_DIPNAME( 0x10, 0x10, "Game Mode" )
+	PORT_DIPSETTING(    0x10, "Match Mode" )
+	PORT_DIPSETTING(    0x00, "Power Mode" )
+/*
+   Match Mode: Winner advances to the next game.  Game Over for the loser
+   Power Mode: The Players can play the game until their respective powers run
+               out, reguardless of whether they win or lose the game.
+               Player 2 can join in any time during the game
+               Player power (time) can be adjusted by dip switch #3
+*/
 	PORT_DIPNAME( 0x20, 0x20, "Starting Button" )
 	PORT_DIPSETTING(    0x00, "Button 1" )
 	PORT_DIPSETTING(    0x20, "Start Button" )
@@ -997,13 +1020,12 @@ INPUT_PORTS_START( dsccr94j )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_SERVICE( 0x80, IP_ACTIVE_LOW )
 
-	PORT_START	/* Dip switch bank 2 */
-	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x01, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x02, 0x02, DEF_STR( Unknown ) )
-	PORT_DIPSETTING(    0x02, DEF_STR( Off ) )
-	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_START	/* Dip switch bank 3 */
+	PORT_DIPNAME( 0x03, 0x03, "Player Power" )
+	PORT_DIPSETTING(    0x00, "500" )
+	PORT_DIPSETTING(    0x03, "1000" )
+	PORT_DIPSETTING(    0x01, "1500" )
+	PORT_DIPSETTING(    0x02, "2000" )
 	PORT_DIPNAME( 0x04, 0x04, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(    0x04, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
@@ -1273,7 +1295,7 @@ static MACHINE_DRIVER_START( psoldier )
 	/* basic machine hardware */
 	MDRV_CPU_ADD(V33, 18000000/2)		/* NEC V33, 18 MHz clock */
 	MDRV_CPU_MEMORY(readmem,writemem)
-	MDRV_CPU_PORTS(readport,writeport)
+	MDRV_CPU_PORTS(readport,psoldier_writeport)
 	MDRV_CPU_VBLANK_INT(m92_interrupt,1)
 
 	MDRV_CPU_ADD(V30, 14318180/2)
@@ -2246,6 +2268,30 @@ static READ_HANDLER( uccops_cycle_r )
 	return m92_ram[0x3a02 + offset];
 }
 
+
+static READ_HANDLER( uccopsj_cycle_r )
+{
+	int a=m92_ram[0x3f18]+(m92_ram[0x3f19]<<8);
+	int b=m92_ram[0x3a00]+(m92_ram[0x3a01]<<8);
+	int c=m92_ram[0x3a02]+(m92_ram[0x3a03]<<8);
+	int d=activecpu_geticount();
+	int line = 256 - cpu_getiloops();
+
+	/* If possible skip this cpu segment - idle loop */
+	if (d>159 && d<0xf0000000 && line<247) {
+		if ((activecpu_get_pc()==0x900ff || activecpu_get_pc()==0x90103) && b==c && offset==1) {
+			cpu_spinuntil_int();
+			/* Update internal counter based on cycles left to run */
+			a=(a+d/127)&0xffff; /* 127 cycles per loop increment */
+			m92_ram[0x3f18]=a&0xff;
+			m92_ram[0x3f19]=a>>8;
+		}
+	}
+
+	return m92_ram[0x3a02 + offset];
+	
+}
+
 static READ_HANDLER( rtypeleo_cycle_r )
 {
 	if (activecpu_get_pc()==0x30791 && offset==0 && m92_ram[0x32]==2 && m92_ram[0x33]==0)
@@ -2394,12 +2440,18 @@ static DRIVER_INIT( uccops )
 	init_m92(dynablaster_decryption_table);
 }
 
+static DRIVER_INIT( uccopsj )
+{
+	install_mem_read_handler(0, 0xe3a02, 0xe3a03, uccopsj_cycle_r);
+	init_m92(dynablaster_decryption_table);
+}
+
 static DRIVER_INIT( rtypeleo )
 {
 	install_mem_read_handler(0, 0xe0032, 0xe0033, rtypeleo_cycle_r);
 	init_m92(rtypeleo_decryption_table);
 	m92_irq_vectorbase=0x20;
-	m92_game_kludge=1;
+	m92_game_kludge=3;
 }
 
 static DRIVER_INIT( rtypelej )
@@ -2407,7 +2459,7 @@ static DRIVER_INIT( rtypelej )
 	install_mem_read_handler(0, 0xe0032, 0xe0033, rtypelej_cycle_r);
 	init_m92(rtypeleo_decryption_table);
 	m92_irq_vectorbase=0x20;
-	m92_game_kludge=1;
+	m92_game_kludge=3;
 }
 
 static DRIVER_INIT( majtitl2 )
@@ -2502,8 +2554,8 @@ GAME( 1991, bmaster,  0,        nonraster, bmaster,  bmaster,  ROT0,   "Irem",  
 GAME( 1991, lethalth, 0,        lethalth,  lethalth, lethalth, ROT270, "Irem",         "Lethal Thunder (World)" )
 GAME( 1991, thndblst, lethalth, lethalth,  lethalth, lethalth, ROT270, "Irem",         "Thunder Blaster (Japan)" )
 GAME( 1992, uccops,   0,        raster,    uccops,   uccops,   ROT0,   "Irem",         "Undercover Cops (World)" )
-GAME( 1992, uccopsar, uccops,   raster,    uccops,   uccops,   ROT0,   "Irem",         "Undercover Cops (Alpha Renewal Version)" )
-GAME( 1992, uccopsj,  uccops,   raster,    uccops,   uccops,   ROT0,   "Irem",         "Undercover Cops (Japan)" )
+GAME( 1992, uccopsar, uccops,   raster,    uccops,   uccopsj,  ROT0,   "Irem",         "Undercover Cops (Alpha Renewal Version)" )
+GAME( 1992, uccopsj,  uccops,   raster,    uccops,   uccopsj,  ROT0,   "Irem",         "Undercover Cops (Japan)" )
 GAME( 1992, mysticri, 0,        nonraster, mysticri, mysticri, ROT0,   "Irem",         "Mystic Riders (World)" )
 GAME( 1992, gunhohki, mysticri, nonraster, mysticri, mysticri, ROT0,   "Irem",         "Gun Hohki (Japan)" )
 GAMEX(1992, majtitl2, 0,        raster,    majtitl2, majtitl2, ROT0,   "Irem",         "Major Title 2 (World)", GAME_IMPERFECT_GRAPHICS )
@@ -2519,8 +2571,8 @@ GAME( 1993, inthuntu, inthunt,  raster,    inthunt,  inthunt,  ROT0,   "Irem Ame
 GAME( 1993, kaiteids, inthunt,  raster,    inthunt,  kaiteids, ROT0,   "Irem",         "Kaitei Daisensou (Japan)" )
 GAMEX(1993, nbbatman, 0,        raster,    nbbatman, nbbatman, ROT0,   "Irem America", "Ninja Baseball Batman (US)", GAME_IMPERFECT_GRAPHICS )
 GAMEX(1993, leaguemn, nbbatman, raster,    nbbatman, nbbatman, ROT0,   "Irem",         "Yakyuu Kakutou League-Man (Japan)", GAME_IMPERFECT_GRAPHICS )
-GAMEX(1993, ssoldier, 0,        psoldier,  psoldier, ssoldier, ROT0,   "Irem America", "Superior Soldiers (US)", GAME_IMPERFECT_SOUND )
-GAMEX(1993, psoldier, ssoldier, psoldier,  psoldier, psoldier, ROT0,   "Irem",         "Perfect Soldiers (Japan)", GAME_IMPERFECT_SOUND )
+GAME( 1993, ssoldier, 0,        psoldier,  psoldier, ssoldier, ROT0,   "Irem America", "Superior Soldiers (US)" )
+GAME( 1993, psoldier, ssoldier, psoldier,  psoldier, psoldier, ROT0,   "Irem",         "Perfect Soldiers (Japan)" )
 GAME( 1994, dsccr94j, dsoccr94, psoldier,  dsccr94j, dsccr94j, ROT0,   "Irem",         "Dream Soccer '94 (Japan)" )
 GAME( 1994, gunforc2, 0,        raster,    gunforc2, gunforc2, ROT0,   "Irem",         "Gunforce 2 (US)" )
 GAME( 1994, geostorm, gunforc2, raster,    gunforc2, gunforc2, ROT0,   "Irem",         "Geostorm (Japan)" )

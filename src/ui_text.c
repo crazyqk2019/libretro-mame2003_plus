@@ -79,12 +79,12 @@ static const char *mame_default_text[] =
 	"Calibrate Joysticks",
 	"Bookkeeping Info",
 	"Input (this game)",
-  "Flush Current CFG",
-  "Flush All CFGs",  
+	"Flush Current CFG",
+	"Flush All CFGs",
 	"Game Information",
 	"Game History",
 	"Reset Game",
-  "Generate XML DAT",  
+	"Generate XML DAT",
 	"Return to Game",
 	"Cheat",
 	"Memory Card",
@@ -93,6 +93,7 @@ static const char *mame_default_text[] =
 	"Key/Joy Speed",
 	"Reverse",
 	"Sensitivity",
+  "X-Way Joystick",
 
 	/* stats */
 	"Tickets dispensed",

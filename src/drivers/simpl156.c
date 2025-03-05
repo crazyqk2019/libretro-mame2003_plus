@@ -94,6 +94,7 @@ Are the OKI M6295 clocks from Heavy Smash are correct at least for the Mitchell 
 #include "deco16ic.h"
 #include "vidhrdw/generic.h"
 #include "bootstrap.h"
+#include "inptport.h"
 
 static UINT32 *simpl156_systemram;
 static const UINT8 *simpl156_default_eeprom = NULL;
@@ -287,11 +288,7 @@ static WRITE32_HANDLER( simpl156_palette_w )
 
 	dat = paletteram16[offset]&0xffff;
 
-#define pal5bit(n)	((((n) & 0x1f) << 3) | (((n) & 0x1f) >> 2))
-
 	palette_set_color(color,pal5bit(dat >> 0),pal5bit(dat >> 5),pal5bit(dat >> 10));
-
-#undef pal5bit
 }
 
 
@@ -485,6 +482,7 @@ static MEMORY_READ32_START( mitchell156_readmem )
 	{ 0x1e4000, 0x1e5fff, simpl156_pf2_rowscroll_r },
 	{ 0x200000, 0x200003, simpl156_inputs_read },
 	{ 0x201000, 0x201fff, MRA32_RAM }, /* work ram (32-bit)*/
+  { 0x202000, 0x202fff, MRA32_RAM }, /* work ram (32-bit) mirror needed for Osman */
 MEMORY_END
 
 static MEMORY_WRITE32_START( mitchell156_writemem )
@@ -503,6 +501,7 @@ static MEMORY_WRITE32_START( mitchell156_writemem )
 	{ 0x1e4000, 0x1e5fff, simpl156_pf2_rowscroll_w },
 	{ 0x1f0000, 0x1f0003, MWA32_NOP }, /* ?*/
 	{ 0x201000, 0x201fff, MWA32_RAM, &simpl156_systemram }, /* work ram (32-bit)*/
+  { 0x202000, 0x202fff, MWA32_RAM, &simpl156_systemram }, /* work ram (32-bit) mirror needed for Osman */
 MEMORY_END
 
 

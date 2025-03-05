@@ -62,12 +62,13 @@ void mame2003_video_get_geometry(struct retro_game_geometry *geom)
    geom->base_height = video_hw_transpose ? vis_w : vis_h;
 
    geom->aspect_ratio = video_hw_transpose ? (float)video_config.aspect_y / (float)video_config.aspect_x : (float)video_config.aspect_x / (float)video_config.aspect_y;
+
 }
 
 void mame2003_video_update_visible_area(struct mame_display *display)
 {
    struct retro_game_geometry geom = { 0 };
-   
+
    struct rectangle visible_area = display->game_visible_area;
    vis_width = visible_area.max_x - visible_area.min_x + 1;
    vis_height = visible_area.max_y - visible_area.min_y + 1;
@@ -83,7 +84,7 @@ void mame2003_video_update_visible_area(struct mame_display *display)
    set_ui_visarea(
       visible_area.min_x, visible_area.min_y,
       visible_area.max_x, visible_area.max_y);
-   
+
    /* Notify libretro of the change */
    mame2003_video_get_geometry(&geom);
    environ_cb(RETRO_ENVIRONMENT_SET_GEOMETRY, &geom);
@@ -110,54 +111,49 @@ void mame2003_video_init_orientation(void)
    unsigned orientation = Machine->gamedrv->flags & ORIENTATION_MASK;
    unsigned rotate_mode;
 
-   /* Acknowledge that the TATE mode is handled */
-   tate_mode = options.tate_mode;
+   rotate_mode = 0; /* Known invalid value */
+   tate_mode = options.tate_mode;   /* Acknowledge that the TATE mode is handled */
+   video_hw_transpose = false;
 
-   /*
-      The UI is always oriented properly at start, but the externally applied
-      orientation needs to be countered.
-   */
+   /* test RA if rotation is working if not dont alter the orientation let mame handle it */
    options.ui_orientation = reverse_orientation(orientation);
 
-   /* Do a 90 degree CCW rotation for vertical games in TATE mode */
    if (tate_mode && (orientation & ORIENTATION_SWAP_XY))
       orientation = reverse_orientation(orientation) ^ ROT270;
 
-   /* Try to reset libretro orientation */
-   rotate_mode = 0;
-   environ_cb(RETRO_ENVIRONMENT_SET_ROTATION, &rotate_mode);
 
-   /* Try to match orientation to a supported libretro rotation */
-   rotate_mode = 0; /* Known invalid value */
-   rotate_mode = (orientation == ROT270) ? 1 : rotate_mode;
-   rotate_mode = (orientation == ROT180) ? 2 : rotate_mode;
-   rotate_mode = (orientation == ROT90) ? 3 : rotate_mode;
-
-   video_hw_transpose = false;
-
-   /* Try to use libretro to do a rotation */
-   if (rotate_mode != 0 /* Known invalid value */
-      && environ_cb(RETRO_ENVIRONMENT_SET_ROTATION, &rotate_mode))
+   if (orientation == ROT0 || orientation == ROT90 || orientation == ROT180 || orientation == ROT270)
    {
-      video_hw_transpose = orientation & ORIENTATION_SWAP_XY;
-      orientation = 0;
-   }
+      if (environ_cb(RETRO_ENVIRONMENT_SET_ROTATION, &rotate_mode) )
+      {
+        log_cb(RETRO_LOG_INFO, LOGPRE "RetroArch will perform the rotation.\n");
 
-   /* Otherwise try to use it to do a transpose */
-   rotate_mode = 3; /* ROT90 */
-   if (orientation & ORIENTATION_SWAP_XY
-      && environ_cb(RETRO_ENVIRONMENT_SET_ROTATION, &rotate_mode))
-   {
-      video_hw_transpose = true;
-      orientation = reverse_orientation(orientation ^ ROT270);
+        rotate_mode = (orientation == ROT270) ? 1 : rotate_mode;
+        rotate_mode = (orientation == ROT180) ? 2 : rotate_mode;
+        rotate_mode = (orientation == ROT90) ? 3 : rotate_mode;
+        if (orientation & ORIENTATION_SWAP_XY) video_hw_transpose = true; /*do this before the rotation reverse*/
+        orientation = reverse_orientation(orientation ^ orientation); /* undo mame rotation if retroarch can do it */
+        environ_cb(RETRO_ENVIRONMENT_SET_ROTATION, &rotate_mode);
+      }
+
+      else
+        log_cb(RETRO_LOG_INFO, LOGPRE "This port of RetroArch does not support rotation or it has been disabled. Mame will rotate internally.\n");
+
    }
+   else
+     log_cb(RETRO_LOG_INFO, LOGPRE "RetroArch does not support this type of rotation, using mame internal rotation instead.\n");
+
+   tate_mode = options.tate_mode;
 
    /* Set up native orientation flags that aren't handled by libretro */
+   if (orientation & ORIENTATION_SWAP_XY) video_hw_transpose = true; /*dont set this to false if RA changes the flags else vertical games swap the xy*/
    video_flip_x = orientation & ORIENTATION_FLIP_X;
    video_flip_y = orientation & ORIENTATION_FLIP_Y;
    video_swap_xy = orientation & ORIENTATION_SWAP_XY;
-
+   log_cb(RETRO_LOG_DEBUG,"mame internal: video_flip_x:%u video_flip_y:%u video_swap_xy:%u video_hw_transpose:%u\n",video_flip_x,video_flip_y,video_swap_xy,video_hw_transpose);
    Machine->ui_orientation = options.ui_orientation;
+
+
 }
 
 /* Init video format conversion settings */
@@ -224,10 +220,10 @@ void mame2003_video_init_conversion(UINT32 *rgb_components)
 /* Do a soft reinit to process new video output parameters */
 void mame2003_video_reinit(void)
 {
-   UINT32 rgb_components;
+   UINT32 rgb_components[3];
    struct osd_create_params old_params = video_config;
    osd_close_display();
-   osd_create_display(&old_params, &rgb_components);
+   osd_create_display(&old_params, &rgb_components[0]);
 }
 
 int osd_create_display(
@@ -242,7 +238,6 @@ int osd_create_display(
    video_do_bypass =
       !video_flip_x && !video_flip_y && !video_swap_xy &&
       ((video_config.depth == 15) || (video_config.depth == 32));
-
    /* Allocate an output video buffer, if necessary */
    if (!video_do_bypass)
    {
@@ -294,7 +289,7 @@ static void frame_convert(struct mame_display *display)
    int x0 = visible_area.min_x, y0 = visible_area.min_y;
    int x1 = visible_area.max_x, y1 = visible_area.max_y;
    int w = x1 - x0 + 1, h = y1 - y0 + 1;
- 
+
    signed pitch = display->game_bitmap->rowpixels;
    char *input = (char*)display->game_bitmap->base;
    char *output = (char*)video_buffer;
@@ -322,7 +317,7 @@ static void frame_convert(struct mame_display *display)
             in += skip;\
          }\
       }
-   
+
    /* A much less optimized pixel conversion loop macro, with XY swap */
    #define CONVERT_SWAP(CONVERT_FUNC, TYPE_IN, TYPE_OUT, FLIP_X, FLIP_Y)\
       {\
@@ -371,6 +366,9 @@ static void frame_convert(struct mame_display *display)
    }
 }
 
+extern bool retro_audio_buff_underrun;
+extern bool retro_audio_buff_active;
+extern unsigned retro_audio_buff_occupancy;
 
 const int frameskip_table[12][12] =
    { { 0,0,0,0,0,0,0,0,0,0,0,0 },
@@ -386,10 +384,40 @@ const int frameskip_table[12][12] =
      { 0,1,1,1,1,1,0,1,1,1,1,1 },
      { 0,1,1,1,1,1,1,1,1,1,1,1 } };
 
+UINT8 frameskip_counter = 0;
+
 int osd_skip_this_frame(void)
 {
-   static unsigned frameskip_counter = 0;
-   return frameskip_table[options.frameskip][frameskip_counter++ % 12];
+	bool skip_frame = 0;
+
+	if (pause_action)  return 0;  /* dont skip pause action hack (rendering mame info screens or you wont see them and not know to press a key) */
+
+/*auto frame skip options */
+	if(options.frameskip >0 && options.frameskip >= 12)
+	{
+		if ( retro_audio_buff_active)
+		{
+			switch ( options.frameskip)
+			{
+				case 12: /* auto */
+					skip_frame = retro_audio_buff_underrun ? 1 : 0;
+				break;
+				case 13: /* aggressive */
+					skip_frame = (retro_audio_buff_occupancy < 33)  ? 1 : 0;
+				break;
+				case 14: /* max */
+					skip_frame = (retro_audio_buff_occupancy < 50)  ? 1 : 0;
+				break;
+				default:
+					skip_frame = options.frameskip;
+				break;
+			}
+		}
+	}
+	else /*manual frameskip */
+	 skip_frame = frameskip_table[options.frameskip][frameskip_counter];
+
+	return skip_frame;
 }
 
 void osd_update_video_and_audio(struct mame_display *display)
@@ -397,7 +425,7 @@ void osd_update_video_and_audio(struct mame_display *display)
    RETRO_PERFORMANCE_INIT(perf_cb, update_video_and_audio);
    RETRO_PERFORMANCE_START(perf_cb, update_video_and_audio);
 
-   if(display->changed_flags & 
+   if(display->changed_flags &
       ( GAME_BITMAP_CHANGED | GAME_PALETTE_CHANGED
       | GAME_VISIBLE_AREA_CHANGED | VECTOR_PIXELS_CHANGED))
    {
@@ -458,9 +486,10 @@ void osd_update_video_and_audio(struct mame_display *display)
       }
       prev_led_state = display->led_state;
    }
-   
+
    gotFrame = 1;
 
+  
    RETRO_PERFORMANCE_STOP(perf_cb, update_video_and_audio);
 }
 

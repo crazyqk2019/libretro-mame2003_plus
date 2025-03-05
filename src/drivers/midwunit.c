@@ -8,6 +8,7 @@
 	Games supported:
 		* Mortal Kombat 3
 		* Ultimate Mortal Kombat 3
+		* Ultimate Mortal Kombat 3 +
 		* NBA Hangtime
 		* NBA Maximum Hangtime
 		* 2 On 2 Open Ice Challenge
@@ -25,6 +26,8 @@
 #include "cpu/adsp2100/adsp2100.h"
 #include "sndhrdw/dcs.h"
 #include "midwunit.h"
+#include "bootstrap.h"
+#include "inptport.h"
 
 
 
@@ -82,27 +85,27 @@ INPUT_PORTS_START( mk3 )
 	PORT_BIT( 0x0002, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_PLAYER1 | IPF_8WAY )
 	PORT_BIT( 0x0004, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_PLAYER1 | IPF_8WAY )
 	PORT_BIT( 0x0008, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_PLAYER1 | IPF_8WAY )
-	PORT_BIT( 0x0010, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER1 )
-	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_BUTTON5 | IPF_PLAYER1 )
-	PORT_BIT( 0x0040, IP_ACTIVE_LOW, IPT_BUTTON3 | IPF_PLAYER1 )
+	PORT_BIT( 0x0010, IP_ACTIVE_LOW, IPT_BUTTON3 | IPF_PLAYER1 ) /* HP */
+	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_BUTTON5 | IPF_PLAYER1 ) /* Block */
+	PORT_BIT( 0x0040, IP_ACTIVE_LOW, IPT_BUTTON4 | IPF_PLAYER1 ) /* HK */
 	PORT_BIT( 0x0080, IP_ACTIVE_LOW, IPT_UNUSED )
 	PORT_BIT( 0x0100, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_PLAYER2 | IPF_8WAY )
 	PORT_BIT( 0x0200, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_PLAYER2 | IPF_8WAY )
 	PORT_BIT( 0x0400, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_PLAYER2 | IPF_8WAY )
 	PORT_BIT( 0x0800, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_PLAYER2 | IPF_8WAY )
-	PORT_BIT( 0x1000, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER2 )
-	PORT_BIT( 0x2000, IP_ACTIVE_LOW, IPT_BUTTON5 | IPF_PLAYER2 )
-	PORT_BIT( 0x4000, IP_ACTIVE_LOW, IPT_BUTTON3 | IPF_PLAYER2 )
+	PORT_BIT( 0x1000, IP_ACTIVE_LOW, IPT_BUTTON3 | IPF_PLAYER2 ) /* HP */
+	PORT_BIT( 0x2000, IP_ACTIVE_LOW, IPT_BUTTON5 | IPF_PLAYER2 ) /* Block */
+	PORT_BIT( 0x4000, IP_ACTIVE_LOW, IPT_BUTTON4 | IPF_PLAYER2 ) /* HK */
 	PORT_BIT( 0x8000, IP_ACTIVE_LOW, IPT_UNUSED )
 
 	PORT_START
-	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER1 )
-	PORT_BIT( 0x0002, IP_ACTIVE_LOW, IPT_BUTTON4 | IPF_PLAYER1 )
-	PORT_BIT( 0x0004, IP_ACTIVE_LOW, IPT_BUTTON6 | IPF_PLAYER1 )
+	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER1 ) /* LP */
+	PORT_BIT( 0x0002, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER1 ) /* LK */
+	PORT_BIT( 0x0004, IP_ACTIVE_LOW, IPT_BUTTON6 | IPF_PLAYER1 ) /* Run */
 	PORT_BIT( 0x0008, IP_ACTIVE_LOW, IPT_UNUSED )
-	PORT_BIT( 0x0010, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER2 )
-	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_BUTTON4 | IPF_PLAYER2 )
-	PORT_BIT( 0x0040, IP_ACTIVE_LOW, IPT_BUTTON6 | IPF_PLAYER2 )
+	PORT_BIT( 0x0010, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER2 ) /* LP */
+	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER2 ) /* LK */
+	PORT_BIT( 0x0040, IP_ACTIVE_LOW, IPT_BUTTON6 | IPF_PLAYER2 ) /* Run */
 	PORT_BIT( 0x0080, IP_ACTIVE_LOW, IPT_UNUSED )
 	PORT_BIT( 0xff00, IP_ACTIVE_LOW, IPT_UNUSED )
 
@@ -256,7 +259,7 @@ INPUT_PORTS_START( openice )
 	PORT_DIPNAME( 0x0800, 0x0800, "Head Size" )
 	PORT_DIPSETTING(      0x0800, "Normal" )
 	PORT_DIPSETTING(      0x0000, "Large" )
-	PORT_DIPNAME( 0x1000, 0x0000, DEF_STR( Cabinet ))
+	PORT_DIPNAME( 0x1000, 0x1000, DEF_STR( Cabinet ))
 	PORT_DIPSETTING(      0x0000, "2-player" )
 	PORT_DIPSETTING(      0x1000, "4-player" )
 	PORT_BIT( 0x6000, IP_ACTIVE_LOW, IPT_UNUSED )
@@ -332,7 +335,7 @@ INPUT_PORTS_START( nbahangt )
 	PORT_DIPNAME( 0x0040, 0x0040, "Bill Validator" )
 	PORT_DIPSETTING(      0x0040, DEF_STR( Off ))
 	PORT_DIPSETTING(      0x0000, DEF_STR( On ))
-	PORT_DIPNAME( 0x0080, 0x0000, DEF_STR( Cabinet ))
+	PORT_DIPNAME( 0x0080, 0x0080, DEF_STR( Cabinet ))
 	PORT_DIPSETTING(      0x0000, "2-player" )
 	PORT_DIPSETTING(      0x0080, "4-player" )
 	PORT_DIPNAME( 0x0300, 0x0300, "Counters" )
@@ -609,7 +612,7 @@ static MACHINE_DRIVER_START( wunit )
 	MDRV_VIDEO_ATTRIBUTES(VIDEO_TYPE_RASTER)
 	MDRV_SCREEN_SIZE(400, 256)
 	MDRV_VISIBLE_AREA(0, 399, 0, 253)
-	MDRV_PALETTE_LENGTH(32768)
+	MDRV_PALETTE_LENGTH(32768+2)
 
 	MDRV_VIDEO_START(midwunit)
 	MDRV_VIDEO_UPDATE(midtunit)
@@ -831,6 +834,52 @@ ROM_START( umk3r11 )
 ROM_END
 
 
+ROM_START( umk3p )
+	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
+
+	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2, 0 )	/* ADSP-2105 data */
+	ROM_LOAD( "umk3plus-u2.bin",  ADSP2100_SIZE + 0x000000, 0x100000, CRC(2c7f4a1d) SHA1(7c0cb857be3ffa12adc58f9256631ec7b8ff5446) )
+	ROM_LOAD( "umk3-u3.bin",  ADSP2100_SIZE + 0x100000, 0x100000, CRC(856fe411) SHA1(6165ebecfce7500e948d84492ffa19eed7f47091) )
+	ROM_LOAD( "umk3-u4.bin",  ADSP2100_SIZE + 0x200000, 0x100000, CRC(428a406f) SHA1(e70ec83cd054de0da1e178720ed0035b8887f797) )
+	ROM_LOAD( "umk3-u5.bin",  ADSP2100_SIZE + 0x300000, 0x100000, CRC(3b98a09f) SHA1(edf1d02a56dcf3349e6b4bb4097acfe7592305f4) )
+
+	ROM_REGION16_LE( 0x100000, REGION_USER1, ROMREGION_DISPOSE )	/* 34010 code */
+	ROM_LOAD16_BYTE( "umk3plusu54.bin",  0x00000, 0x80000, CRC(54a5359f) SHA1(94c90c1b21123e06cbdc66cd0b9499fc60d56642) )
+	ROM_LOAD16_BYTE( "umk3plusu63.bin",  0x00001, 0x80000, CRC(fb83320d) SHA1(d0af81a24977d62fb168991022dbd083e471d8de) )
+
+	ROM_REGION( 0x2000000, REGION_GFX1, 0 )
+	ROM_LOAD( "umk-u133.bin",  0x0000000, 0x100000, CRC(79b94667) SHA1(31bba640c351fdccc6685cadb74dd79a3f910ce8) )
+	ROM_LOAD( "umk-u132.bin",  0x0100000, 0x100000, CRC(13e95228) SHA1(405b05f5a5a55667c2be17d4b399129bdacefd90) )
+	ROM_LOAD( "umk-u131.bin",  0x0200000, 0x100000, CRC(41001e30) SHA1(2cec91116771951c0380cec5debf4cbb40c14c61) )
+	ROM_LOAD( "umk-u130.bin",  0x0300000, 0x100000, CRC(49379dd7) SHA1(e6dfab4e23d9cc38ae56c1bbf10ccd160e8fad5e) )
+
+	ROM_LOAD( "umk-u129.bin",  0x0400000, 0x100000, CRC(a8b41803) SHA1(9697e35e8bb51d6d36b1d7ae47377b446e57682f) )
+	ROM_LOAD( "umk-u128.bin",  0x0500000, 0x100000, CRC(b410d72f) SHA1(ac5c1c6f744186540f4ab100d9bd4ce6007e600b) )
+	ROM_LOAD( "umk-u127.bin",  0x0600000, 0x100000, CRC(bd985be7) SHA1(f5183abea2e5eb2c2c8cefa72c9ed321679f5128) )
+	ROM_LOAD( "umk-u126.bin",  0x0700000, 0x100000, CRC(e7c32cf4) SHA1(94ea7b2eed7dae66f5dd676c20d6b360140e3e0e) )
+
+	ROM_LOAD( "umk-u125.bin",  0x0800000, 0x100000, CRC(9a52227e) SHA1(0474a14fa8dbfea0b0889c1d1756b86391683558) )
+	ROM_LOAD( "umk-u124.bin",  0x0900000, 0x100000, CRC(5c750ebc) SHA1(45d68af1a56994376e086d840502453c8d6be700) )
+	ROM_LOAD( "umk-u123.bin",  0x0a00000, 0x100000, CRC(f0ab88a8) SHA1(cdc9dc12e162255845c6627b1e35182b7e8502d0) )
+	ROM_LOAD( "umk-u122.bin",  0x0b00000, 0x100000, CRC(9b87cdac) SHA1(a5f8db559293978f23e6f105543d8b2e170a2e0d) )
+
+	ROM_LOAD( "umk-u121.bin",  0x0c00000, 0x100000, CRC(cc4b95db) SHA1(3d53180eec649e9616c4b87db55573f12d9bfee3) )
+	ROM_LOAD( "umk-u120.bin",  0x0d00000, 0x100000, CRC(1c8144cd) SHA1(77cdc1eaf630ccb7233f5532f8b08191d00f0816) )
+	ROM_LOAD( "umk-u119.bin",  0x0e00000, 0x100000, CRC(5f10c543) SHA1(24dc83b7aa531ebd399258ffa7b2e028f1c4a28e) )
+	ROM_LOAD( "umk-u118.bin",  0x0f00000, 0x100000, CRC(de0c4488) SHA1(227cab34798c440b2a45223567113df5f17d913f) )
+
+	ROM_LOAD( "umk3plus-u117.bin",  0x1000000, 0x80000, CRC(52ee547e) SHA1(97dba4d6dd503a623dad5709767e4617de211af0) )
+	ROM_LOAD( "umk3plus-u116.bin",  0x1100000, 0x80000, CRC(f6df5c98) SHA1(e8317cf46d23738223f034c10f0f6f874d72165f) )
+	ROM_LOAD( "umk3plus-u115.bin",  0x1200000, 0x80000, CRC(e003a51b) SHA1(e11c0cb0a9d647f17398b48d0b7d088526a18af8) )
+	ROM_LOAD( "umk3plus-u114.bin",  0x1300000, 0x80000, CRC(b8504598) SHA1(fce32581d6ff9e1a7455c30fb10812ba9dc70db5) )
+
+	ROM_LOAD( "umk-u113.bin",  0x1400000, 0x100000, CRC(99d74a1e) SHA1(ed3068afa98287ea290d1f537f5009d3b6d683da) )
+	ROM_LOAD( "umk-u112.bin",  0x1500000, 0x100000, CRC(b5a46488) SHA1(dbf22e55d200eb9ff550f48b223cf0c6114a9357) )
+	ROM_LOAD( "umk-u111.bin",  0x1600000, 0x100000, CRC(a87523c8) SHA1(e70b7599fef82001f762fc2c48f7b85474431ccc) )
+	ROM_LOAD( "umk-u110.bin",  0x1700000, 0x100000, CRC(0038f205) SHA1(059c1c71a2d92ee6db36c09831d213a48a7e81d0) )
+ROM_END
+
+
 ROM_START( openice )
 	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
 
@@ -908,7 +957,7 @@ ROM_START( nbahangt )
 ROM_END
 
 
-ROM_START( nbamaxht )
+ROM_START( nbamht )
 	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
 
 	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2, 0 )	/* ADSP-2105 data */
@@ -918,8 +967,8 @@ ROM_START( nbamaxht )
 	ROM_LOAD( "mhtu5.bin",  ADSP2100_SIZE + 0x300000, 0x100000, CRC(ef19316a) SHA1(d41ae87ab45630a37c73684de42f7f6e0ed8f13b) )
 
 	ROM_REGION16_LE( 0x100000, REGION_USER1, ROMREGION_DISPOSE )	/* 34010 code */
-	ROM_LOAD16_BYTE( "mhtu54.bin",  0x00000, 0x80000, CRC(dfb6b3ae) SHA1(1dc59a2d89bf9764a47cebf71b9657c6ae7ce959) )
-	ROM_LOAD16_BYTE( "mhtu63.bin",  0x00001, 0x80000, CRC(78da472c) SHA1(b4573ff19dc0d8a99f1bceace872e4999d53317a) )
+	ROM_LOAD16_BYTE( "mhtu54_v103.bin",  0x00000, 0x80000, CRC(21b0d9e1) SHA1(34fa928bdb222fba1fec2a9f37b853f77922250f) )
+	ROM_LOAD16_BYTE( "mhtu63_v103.bin",  0x00001, 0x80000, CRC(c6fdbb97) SHA1(e6cf0c6a94441befdde40b620a182877c11582a5) )
 
 	ROM_REGION( 0x2000000, REGION_GFX1, 0 )
 	ROM_LOAD( "mhtu133.bin",  0x0000000, 0x100000, CRC(3163feed) SHA1(eb7f128de306933929a0933e36e57760459cb0a1) )
@@ -948,6 +997,45 @@ ROM_START( nbamaxht )
 	ROM_LOAD( "mhtu110.bin",  0x1700000, 0x100000, CRC(8575aeb2) SHA1(883acfc45416ab6e1ab77fc897638f89286bea7e) )
 ROM_END
 
+ROM_START( nbamht1 )
+	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
+
+	ROM_REGION( ADSP2100_SIZE + 0x400000, REGION_CPU2, 0 )	/* ADSP-2105 data */
+	ROM_LOAD( "mhtu2.bin",  ADSP2100_SIZE + 0x000000, 0x100000, CRC(3f0b0d0a) SHA1(e3b8a264686ce7359d86e4926237d8cf17612991) )
+	ROM_LOAD( "mhtu3.bin",  ADSP2100_SIZE + 0x100000, 0x100000, CRC(ec1db988) SHA1(1cf06d0b75f20ded7db648070e85c056043765bb) )
+	ROM_LOAD( "mhtu4.bin",  ADSP2100_SIZE + 0x200000, 0x100000, CRC(c7f847a3) SHA1(c50175dffa3563ccd5792c59a6b44523f4014544) )
+	ROM_LOAD( "mhtu5.bin",  ADSP2100_SIZE + 0x300000, 0x100000, CRC(ef19316a) SHA1(d41ae87ab45630a37c73684de42f7f6e0ed8f13b) )
+
+	ROM_REGION16_LE( 0x100000, REGION_USER1, ROMREGION_DISPOSE )	/* 34010 code */
+	ROM_LOAD16_BYTE( "mhtu54_v10.bin",  0x00000, 0x80000, CRC(dfb6b3ae) SHA1(1dc59a2d89bf9764a47cebf71b9657c6ae7ce959) )
+	ROM_LOAD16_BYTE( "mhtu63_v10.bin",  0x00001, 0x80000, CRC(78da472c) SHA1(b4573ff19dc0d8a99f1bceace872e4999d53317a) )
+
+	ROM_REGION( 0x2000000, REGION_GFX1, 0 )
+	ROM_LOAD( "mhtu133.bin",  0x0000000, 0x100000, CRC(3163feed) SHA1(eb7f128de306933929a0933e36e57760459cb0a1) )
+	ROM_LOAD( "mhtu132.bin",  0x0100000, 0x100000, CRC(428eaf44) SHA1(2897efef4ab1653870b5bebb2762ea85549da03a) )
+	ROM_LOAD( "mhtu131.bin",  0x0200000, 0x100000, CRC(5f7c5111) SHA1(14337f50b7b98254b54250af00f8a4a46bd7ee8d) )
+	ROM_LOAD( "mhtu130.bin",  0x0300000, 0x100000, CRC(c7c0c514) SHA1(49788ff885996d9c5909c0ecebe06b6abd4298ed) )
+
+	ROM_LOAD( "mhtu129.bin",  0x0400000, 0x100000, CRC(b3d0daa0) SHA1(302208c30f2b0c4aead8cf9201ae4c9501f7f952) )
+	ROM_LOAD( "mhtu128.bin",  0x0500000, 0x100000, CRC(3704ee69) SHA1(e57846e96380af480fd6851c5359f88d432ac7cc) )
+	ROM_LOAD( "mhtu127.bin",  0x0600000, 0x100000, CRC(4ea64d5a) SHA1(e7054c3946898ab0c5b4c27244c2eb6b24eaced7) )
+	ROM_LOAD( "mhtu126.bin",  0x0700000, 0x100000, CRC(0c5c19b7) SHA1(802a05f53fcc2827960a63ef5c32a884fc96aaee) )
+
+	ROM_LOAD( "mhtu125.bin",  0x0800000, 0x100000, CRC(46c43d67) SHA1(13a4d924fed51c2db7f750436b0b7c6ef03d36a5) )
+	ROM_LOAD( "mhtu124.bin",  0x0900000, 0x100000, CRC(ed495156) SHA1(40f67fb2ccdd185b444f1127b1ec2fa4b493d7d6) )
+	ROM_LOAD( "mhtu123.bin",  0x0a00000, 0x100000, CRC(b48aa5da) SHA1(d8ee259a63dd7d997f2b99b73d0f11a277ba961d) )
+	ROM_LOAD( "mhtu122.bin",  0x0b00000, 0x100000, CRC(b18cd181) SHA1(d86eb5c81b10ba112ed989ab581683ccb669c3b5) )
+
+	ROM_LOAD( "mhtu121.bin",  0x0c00000, 0x100000, CRC(5acb267a) SHA1(9c7e55991f795f0deae5f5cada3d5f49b7da578e) )
+	ROM_LOAD( "mhtu120.bin",  0x0d00000, 0x100000, CRC(28e05f86) SHA1(ab642e7525b8fe55aab79597fcf84c4a8265463f) )
+	ROM_LOAD( "mhtu119.bin",  0x0e00000, 0x100000, CRC(b4f604ea) SHA1(3997acfc856eead321e98584f7cb21953c95951a) )
+	ROM_LOAD( "mhtu118.bin",  0x0f00000, 0x100000, CRC(a257b973) SHA1(31b4e3cf4e93be673d9b32dc85d7be0edcf6234c) )
+
+	ROM_LOAD( "mhtu113.bin",  0x1400000, 0x100000, CRC(d712a779) SHA1(ca0e25fbb570c28c9ac6674f35050152a9072a5b) )
+	ROM_LOAD( "mhtu112.bin",  0x1500000, 0x100000, CRC(644e1bca) SHA1(447cc3b0a16aaff39b6cd095f1c255a91f235f7f) )
+	ROM_LOAD( "mhtu111.bin",  0x1600000, 0x100000, CRC(10d3b768) SHA1(e22fcb02a17c78f963ee5d35a38a9ab14f3de450) )
+	ROM_LOAD( "mhtu110.bin",  0x1700000, 0x100000, CRC(8575aeb2) SHA1(883acfc45416ab6e1ab77fc897638f89286bea7e) )
+ROM_END
 
 ROM_START( rmpgwt )
 	ROM_REGION( 0x10, REGION_CPU1, 0 )		/* 34010 dummy region */
@@ -1064,15 +1152,17 @@ ROM_END
  *
  *************************************/
 
-GAME( 1994, mk3,     0,         wunit, mk3,     mk3,     ROT0, "Midway", "Mortal Kombat 3 (rev 2.1)" )
-GAME( 1994, mk3r20,  mk3,       wunit, mk3,     mk3r20,  ROT0, "Midway", "Mortal Kombat 3 (rev 2.0)" )
-GAME( 1994, mk3r10,  mk3,       wunit, mk3,     mk3r10,  ROT0, "Midway", "Mortal Kombat 3 (rev 1.0)" )
-GAME( 1994, umk3,    mk3,       wunit, mk3,     umk3,    ROT0, "Midway", "Ultimate Mortal Kombat 3 (rev 1.2)" )
-GAME( 1994, umk3r11, mk3,       wunit, mk3,     umk3r11, ROT0, "Midway", "Ultimate Mortal Kombat 3 (rev 1.1)" )
+GAME ( 1994, mk3,     0,         wunit, mk3,     mk3,     ROT0, "Midway", "Mortal Kombat 3 (rev 2.1)" )
+GAME ( 1994, mk3r20,  mk3,       wunit, mk3,     mk3r20,  ROT0, "Midway", "Mortal Kombat 3 (rev 2.0)" )
+GAME ( 1994, mk3r10,  mk3,       wunit, mk3,     mk3r10,  ROT0, "Midway", "Mortal Kombat 3 (rev 1.0)" )
+GAMEC( 1994, umk3,    mk3,       wunit, mk3,     umk3,    ROT0, "Midway", "Ultimate Mortal Kombat 3 (rev 1.2)", &mk3_ctrl, &umk3_bootstrap )
+GAMEC( 1994, umk3r11, mk3,       wunit, mk3,     umk3r11, ROT0, "Midway", "Ultimate Mortal Kombat 3 (rev 1.1)", &mk3_ctrl, &umk3r11_bootstrap )
+GAMEC( 2022, umk3p,   mk3,       wunit, mk3,     umk3p,   ROT0, "hack",   "Ultimate Mortal Kombat 3 Plus (Beta 2)", &mk3_ctrl, &umk3p_bootstrap )
 
-GAME( 1995, wwfmania,0,         wunit, wwfmania,wwfmania,ROT0, "Midway", "WWF - Wrestlemania (rev 1.30 08-10-95)" )
-GAME( 1995, openice, 0,         wunit, openice, openice, ROT0, "Midway", "2 On 2 Open Ice Challenge (rev 1.21)" )
-GAME( 1996, nbahangt,0,         wunit, nbahangt,nbahangt,ROT0, "Midway", "NBA Hangtime (rev L1.1 04-16-96)" )
-GAME( 1996, nbamaxht,nbahangt,  wunit, nbahangt,nbahangt,ROT0, "Midway", "NBA Maximum Hangtime (rev 1.0 11-8-96)" )
-GAME( 1997, rmpgwt,  0,         wunit, rmpgwt,  rmpgwt,  ROT0, "Midway", "Rampage - World Tour (rev 1.3)" )
-GAME( 1997, rmpgwt11,rmpgwt,    wunit, rmpgwt,  rmpgwt,  ROT0, "Midway", "Rampage - World Tour (rev 1.1)" )
+GAMEC( 1995, wwfmania,0,         wunit, wwfmania,wwfmania,ROT0, "Midway", "WWF - Wrestlemania (rev 1.30 08-10-95)", &wwfmania_ctrl, &wwfmania_bootstrap )
+GAMEC( 1995, openice, 0,         wunit, openice, openice, ROT0, "Midway", "2 On 2 Open Ice Challenge (rev 1.21)", &openice_ctrl, &openice_bootstrap )
+GAMEC( 1996, nbahangt,0,         wunit, nbahangt,nbahangt,ROT0, "Midway", "NBA Hangtime (rev L1.1 04-16-96)", &nbahangt_ctrl, &nbahangt_bootstrap )
+GAMEC( 1997, nbamht,  nbahangt,  wunit, nbahangt,nbahangt,ROT0, "Midway", "NBA Maximum Hangtime (rev 1.03 06/09/97)", &nbahangt_ctrl, &nbamaxht_bootstrap )
+GAMEC( 1996, nbamht1, nbahangt,  wunit, nbahangt,nbahangt,ROT0, "Midway", "NBA Maximum Hangtime (rev 1.0 11/08/96)", &nbahangt_ctrl, &nbamaxht_bootstrap )
+GAMEC( 1997, rmpgwt,  0,         wunit, rmpgwt,  rmpgwt,  ROT0, "Midway", "Rampage - World Tour (rev 1.3)", &rmpgwt_ctrl, &rmpgwt_bootstrap )
+GAMEC( 1997, rmpgwt11,rmpgwt,    wunit, rmpgwt,  rmpgwt,  ROT0, "Midway", "Rampage - World Tour (rev 1.1)", &rmpgwt_ctrl, &rmpgwt11_bootstrap )

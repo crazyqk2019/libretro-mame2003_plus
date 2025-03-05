@@ -18,6 +18,7 @@ struct tempsprite
 };
 static struct tempsprite *spritelist;
 
+extern UINT8 TC0360PRI_regs[16];
 
 /******************************************************************/
 
@@ -40,18 +41,39 @@ VIDEO_START( undrfire )
 	return 0;
 }
 
+VIDEO_START( cbombers )
+{
+	int i;
+
+	spritelist = auto_malloc(0x4000 * sizeof(*spritelist));
+	if (!spritelist)
+		return 1;
+
+	if (TC0100SCN_vh_start(1,TC0100SCN_GFX_NUM,50,8,0,0,0,0,0))
+		return 1;
+
+	if (TC0480SCP_vh_start(TC0480SCP_GFX_NUM,0,0x24,0,-1,0,0,0,4096))
+		return 1;
+
+	TC0360PRI_vh_start();	/* Purely for save-state purposes */
+
+	for (i=0; i<16384; i++) /* Fix later - some weird colours in places */
+		palette_set_color(i,0,0,0);
+	return 0;
+}
+
 /***************************************************************
-			SPRITE DRAW ROUTINES
+            SPRITE DRAW ROUTINES
 
 We draw a series of small tiles ("chunks") together to
 create each big sprite. The spritemap rom provides the lookup
 table for this. The game hardware looks up 16x16 sprite chunks
 from the spritemap rom, creating a 64x64 sprite like this:
 
-	 0  1  2  3
-	 4  5  6  7
-	 8  9 10 11
-	12 13 14 15
+     0  1  2  3
+     4  5  6  7
+     8  9 10 11
+    12 13 14 15
 
 (where the number is the word offset into the spritemap rom).
 It can also create 32x32 sprites.
@@ -63,33 +85,34 @@ spriteram is being tested, take no notice of that.]
 
 Heavy use is made of sprite zooming.
 
-		***
+        ***
 
-	Sprite table layout (4 long words per entry)
+    Sprite table layout (4 long words per entry)
 
-	------------------------------------------
-	 0 | ........ x....... ........ ........ | Flip X
-	 0 | ........ .xxxxxxx ........ ........ | ZoomX
-	 0 | ........ ........ .xxxxxxx xxxxxxxx | Sprite Tile
-	   |                                     |
-	 2 | ........ ....xx.. ........ ........ | Sprite/tile priority [*]
-	 2 | ........ ......xx xxxxxx.. ........ | Palette bank
-	 2 | ........ ........ ......xx xxxxxxxx | X position
-	   |                                     |
-	 3 | ........ .....x.. ........ ........ | Sprite size (0=32x32, 1=64x64)
-	 3 | ........ ......x. ........ ........ | Flip Y
-	 3 | ........ .......x xxxxxx.. ........ | ZoomY
-	 3 | ........ ........ ......xx xxxxxxxx | Y position
-	------------------------------------------
+    ------------------------------------------
+     0 | ........ x....... ........ ........ | Flip X
+     0 | ........ .xxxxxxx ........ ........ | ZoomX
+     0 | ........ ........ .xxxxxxx xxxxxxxx | Sprite Tile
+       |                                     |
+     2 | ........ ....xx.. ........ ........ | Sprite/tile priority [*]
+     2 | ........ ......xx xxxxxx.. ........ | Palette bank
+     2 | ........ ........ ......xx xxxxxxxx | X position
+       |                                     |
+     3 | ........ .....x.. ........ ........ | Sprite size (0=32x32, 1=64x64)
+     3 | ........ ......x. ........ ........ | Flip Y
+     3 | ........ .......x xxxxxx.. ........ | ZoomY
+     3 | ........ ........ ......xx xxxxxxxx | Y position
+    ------------------------------------------
 
-	[*  00=over BG0, 01=BG1, 10=BG2, 11=BG3 ]
-	[or 00=over BG1, 01=BG2, 10=BG3, 11=BG3 ]
+    [*  00=over BG0, 01=BG1, 10=BG2, 11=BG3 ]
+    [or 00=over BG1, 01=BG2, 10=BG3, 11=BG3 ]
+    [or controlled by TC0360PRI             ]
 
 ***************************************************************/
 
 static void undrfire_draw_sprites_16x16(struct mame_bitmap *bitmap,const struct rectangle *cliprect,int *primasks,int x_offs,int y_offs)
 {
-	data16_t *spritemap = (data16_t *)memory_region(REGION_USER1);
+	UINT16 *spritemap = (UINT16 *)memory_region(REGION_USER1);
 	int offs, data, tilenum, color, flipx, flipy;
 	int x, y, priority, dblsize, curx, cury;
 	int sprites_flipscreen = 0;
@@ -98,7 +121,7 @@ static void undrfire_draw_sprites_16x16(struct mame_bitmap *bitmap,const struct 
 	int dimension,total_chunks,bad_chunks;
 
 	/* pdrawgfx() needs us to draw sprites front to back, so we have to build a list
-	   while processing sprite ram and then draw them all at the end */
+       while processing sprite ram and then draw them all at the end */
 	struct tempsprite *sprite_ptr = spritelist;
 
 	for (offs = (spriteram_size/4-4);offs >= 0;offs -= 4)
@@ -139,8 +162,8 @@ static void undrfire_draw_sprites_16x16(struct mame_bitmap *bitmap,const struct 
 		x -= x_offs;
 
 		bad_chunks = 0;
-		dimension = ((dblsize*2) + 2);	/* 2 or 4*/
-		total_chunks = ((dblsize*3) + 1) << 2;	/* 4 or 16*/
+		dimension = ((dblsize*2) + 2);	/* 2 or 4 */
+		total_chunks = ((dblsize*3) + 1) << 2;	/* 4 or 16 */
 		map_offset = tilenum << 2;
 
 		{
@@ -172,8 +195,8 @@ static void undrfire_draw_sprites_16x16(struct mame_bitmap *bitmap,const struct 
 				if (sprites_flipscreen)
 				{
 					/* -zx/y is there to fix zoomed sprite coords in screenflip.
-					   drawgfxzoom does not know to draw from flip-side of sprites when
-					   screen is flipped; so we must correct the coords ourselves. */
+                       drawgfxzoom does not know to draw from flip-side of sprites when
+                       screen is flipped; so we must correct the coords ourselves. */
 
 					curx = 320 - curx - zx;
 					cury = 256 - cury - zy;
@@ -230,8 +253,143 @@ log_cb(RETRO_LOG_DEBUG, LOGPRE "Sprite number %04x had %02x invalid chunks\n",ti
 	}
 }
 
+static void draw_sprites_cbombers_16x16(struct mame_bitmap *bitmap,const struct rectangle *cliprect,const UINT8 *pritable,int x_offs,int y_offs)
+{
+	UINT16 *spritemap = (UINT16 *)memory_region(REGION_USER1);
+	UINT8 *spritemapHibit = (UINT8 *)memory_region(REGION_USER2);
+
+	int offs, data, tilenum, color, flipx, flipy;
+	int x, y, priority, dblsize, curx, cury;
+	int sprites_flipscreen = 0;
+	int zoomx, zoomy, zx, zy;
+	int sprite_chunk,map_offset,code,j,k,px,py;
+	int dimension,total_chunks;
+
+	/* pdrawgfx() needs us to draw sprites front to back, so we have to build a list
+       while processing sprite ram and then draw them all at the end */
+	struct tempsprite *sprite_ptr = spritelist;
+
+	for (offs = (spriteram_size/4-4);offs >= 0;offs -= 4)
+	{
+		data = spriteram32[offs+0];
+		flipx =    (data & 0x00800000) >> 23;
+		zoomx =    (data & 0x007f0000) >> 16;
+		tilenum =  (data & 0x0000ffff);
+
+		data = spriteram32[offs+2];
+		priority = (data & 0x000c0000) >> 18;
+		color =    (data & 0x0003fc00) >> 10;
+		x =        (data & 0x000003ff);
+
+		data = spriteram32[offs+3];
+		dblsize =  (data & 0x00040000) >> 18;
+		flipy =    (data & 0x00020000) >> 17;
+		zoomy =    (data & 0x0001fc00) >> 10;
+		y =        (data & 0x000003ff);
+
+		color |= (/*0x100 +*/ (priority << 6));		/* priority bits select color bank */
+
+		color /= 2;		/* as sprites are 5bpp */
+		flipy = !flipy;
+
+		if (!tilenum) continue;
+
+		zoomx += 1;
+		zoomy += 1;
+
+		y += y_offs;
+
+		/* treat coords as signed */
+		if (x>0x340) x -= 0x400;
+		if (y>0x340) y -= 0x400;
+
+		x -= x_offs;
+
+		dimension = ((dblsize*2) + 2);	/* 2 or 4 */
+		total_chunks = ((dblsize*3) + 1) << 2;	/* 4 or 16 */
+		map_offset = tilenum << 2;
+
+		for (sprite_chunk = 0; sprite_chunk < total_chunks; sprite_chunk++)
+		{
+			int map_addr;
+
+			j = sprite_chunk / dimension;   /* rows */
+			k = sprite_chunk % dimension;   /* chunks per row */
+
+			px = k;
+			py = j;
+			/* pick tiles back to front for x and y flips */
+			if (flipx)  px = dimension-1-k;
+			if (flipy)  py = dimension-1-j;
+
+			map_addr = map_offset + px + (py << (dblsize + 1));
+			code =  (spritemapHibit[map_addr] << 16) | spritemap[map_addr];
+
+			curx = x + ((k*zoomx)/dimension);
+			cury = y + ((j*zoomy)/dimension);
+
+			zx= x + (((k+1)*zoomx)/dimension) - curx;
+			zy= y + (((j+1)*zoomy)/dimension) - cury;
+
+			if (sprites_flipscreen)
+			{
+				/* -zx/y is there to fix zoomed sprite coords in screenflip.
+                       drawgfxzoom does not know to draw from flip-side of sprites when
+                       screen is flipped; so we must correct the coords ourselves. */
+
+				curx = 320 - curx - zx;
+				cury = 256 - cury - zy;
+				flipx = !flipx;
+				flipy = !flipy;
+			}
+
+			sprite_ptr->gfx = 0;
+			sprite_ptr->code = code;
+			sprite_ptr->color = color;
+			sprite_ptr->flipx = !flipx;
+			sprite_ptr->flipy = flipy;
+			sprite_ptr->x = curx;
+			sprite_ptr->y = cury;
+			sprite_ptr->zoomx = zx << 12;
+			sprite_ptr->zoomy = zy << 12;
+
+			if (pritable)
+			{
+				sprite_ptr->primask = ~(UINT32_C(1)) << pritable[priority];
+				sprite_ptr++;
+			}
+			else
+			{
+				drawgfxzoom(bitmap,Machine->gfx[sprite_ptr->gfx],
+						sprite_ptr->code,
+						sprite_ptr->color,
+						sprite_ptr->flipx,sprite_ptr->flipy,
+						sprite_ptr->x,sprite_ptr->y,
+						cliprect,TRANSPARENCY_PEN,0,
+						sprite_ptr->zoomx,sprite_ptr->zoomy);
+			}
+		}
+	}
+
+	/* this happens only if primsks != NULL */
+	while (sprite_ptr != spritelist)
+	{
+		sprite_ptr--;
+
+		pdrawgfxzoom(bitmap,Machine->gfx[sprite_ptr->gfx],
+				sprite_ptr->code,
+				sprite_ptr->color,
+				sprite_ptr->flipx,sprite_ptr->flipy,
+				sprite_ptr->x,sprite_ptr->y,
+				cliprect,TRANSPARENCY_PEN,0,
+				sprite_ptr->zoomx,sprite_ptr->zoomy,
+				sprite_ptr->primask);
+	}
+}
+
+
 /**************************************************************
-				SCREEN REFRESH
+                SCREEN REFRESH
 **************************************************************/
 
 VIDEO_UPDATE( undrfire )
@@ -306,7 +464,7 @@ VIDEO_UPDATE( undrfire )
    pointless - it's always hidden by other layers. Does it
    serve some blending pupose ? */
 
-	TC0100SCN_tilemap_draw(bitmap,cliprect,0,pivlayer[0],0,0);
+	TC0100SCN_tilemap_draw(bitmap,cliprect,0,pivlayer[0],TILEMAP_IGNORE_TRANSPARENCY,0);
 	TC0100SCN_tilemap_draw(bitmap,cliprect,0,pivlayer[1],0,0);
 
 #ifdef MAME_DEBUG
@@ -353,13 +511,9 @@ VIDEO_UPDATE( undrfire )
 
 	TC0480SCP_tilemap_draw(bitmap,cliprect,layer[4],0,0);	/* TC0480SCP text layer */
 
-	/* See if we should draw artificial gun targets */
-	/* (not yet implemented...) */
-
-	if (input_port_7_word_r(0,0) & 0x1)	/* Fake DSW */
-	{
-		usrintf_showmessage("Gunsights on");
-	}
+	/* draw artificial gun targets */
+	draw_crosshair( 1, bitmap, (255 - readinputport(3)) * 1.255, readinputport(4) + 9, cliprect );
+	draw_crosshair( 2, bitmap, (255 - readinputport(5)) * 1.255, readinputport(6) + 9, cliprect );
 
 /* Enable this to see rotation (?) control words */
 #if 0
@@ -371,6 +525,164 @@ VIDEO_UPDATE( undrfire )
 		{
 			sprintf (buf, "%02x: %04x", i, undrfire_rotate_ctrl[i]);
 			ui_text (Machine->scrbitmap, buf, 0, i*8);
+		}
+	}
+#endif
+}
+
+/*
+	TC0360PRI Priority format for chase bombers
+	Offset Bits      Description
+	       7654 3210
+	00     0001 1100 Unknown
+	01     0000 1111 Unknown
+	04     xxxx ---- TC0480SCP Layer 3 Priority
+	       ---- xxxx TC0480SCP Layer 2 Priority
+	05     xxxx ---- TC0480SCP Layer 1 Priority
+	       ---- xxxx TC0480SCP Layer 0 Priority
+	06     xxxx ---- TC0480SCP Text Layer Priority
+	       ---- 0000 Unknown
+	07     xxxx ---- TC0620SCC Layer 0 Priority
+	       ---- xxxx TC0620SCC Layer 1 Priority
+	08     xxxx ---- Sprite Priority Bank 1
+	       ---- xxxx Sprite Priority Bank 0
+	09     xxxx ---- Sprite Priority Bank 3
+	       ---- xxxx Sprite Priority Bank 2
+	Values are 0 (Bottommost) ... f (Topmost)
+	Other registers are unknown/unused
+*/
+
+VIDEO_UPDATE( cbombers )
+{
+	UINT8 layer[5];
+	UINT8 pivlayer[3];
+	UINT16 priority;
+
+	UINT8 tc0480scp_pri[5];
+	UINT8 tc0620scc_pri[2];
+	UINT8 sprite_pri[4];
+
+	int p, scc, scp;
+
+#ifdef MAME_DEBUG
+	static UINT8 dislayer[6];	/* Layer toggles to help get layers correct */
+#endif
+
+#ifdef MAME_DEBUG
+	if (keyboard_pressed_memory (KEYCODE_C))
+	{
+		dislayer[0] ^= 1;
+		usrintf_showmessage("bg0: %01x",dislayer[0]);
+	}
+
+	if (keyboard_pressed_memory (KEYCODE_V))
+	{
+		dislayer[1] ^= 1;
+	    usrintf_showmessage("bg1: %01x",dislayer[1]);
+	}
+
+	if (keyboard_pressed_memory(KEYCODE_B))
+	{
+		dislayer[2] ^= 1;
+		usrintf_showmessage("bg2: %01x",dislayer[2]);
+	}
+
+	if (keyboard_pressed_memory (KEYCODE_N))
+	{
+		dislayer[3] ^= 1;
+		usrintf_showmessage("bg3: %01x",dislayer[3]);
+	}
+
+	if (keyboard_pressed_memory (KEYCODE_X))
+	{
+		dislayer[4] ^= 1;
+		usrintf_showmessage("text: %01x",dislayer[4]);
+	}
+	if (keyboard_pressed_memory (KEYCODE_M))
+	{
+		dislayer[5] ^= 1;
+		usrintf_showmessage("sprites: %01x",dislayer[5]);
+	}
+#endif
+
+	TC0100SCN_tilemap_update();
+	TC0480SCP_tilemap_update();
+
+	priority = TC0480SCP_get_bg_priority();
+	if (priority == 0x3210) priority = 0x2310; /* fix bg over fg after selecting race -dink */
+
+	layer[0] = (priority &0xf000) >> 12;	/* tells us which bg layer is bottom */
+	layer[1] = (priority &0x0f00) >>  8;
+	layer[2] = (priority &0x00f0) >>  4;
+	layer[3] = (priority &0x000f) >>  0;	/* tells us which is top */
+	layer[4] = 4;   /* text layer always over bg layers */
+
+	pivlayer[0] = TC0100SCN_bottomlayer(0);
+	pivlayer[1] = pivlayer[0]^1;
+	pivlayer[2] = 2;
+
+	/* parse priority values */
+	tc0480scp_pri[layer[0]] = TC0360PRI_regs[5] & 0x0f;
+	tc0480scp_pri[layer[1]] = (TC0360PRI_regs[5] >> 4) & 0x0f;
+	tc0480scp_pri[layer[2]] = TC0360PRI_regs[4] & 0x0f;
+	tc0480scp_pri[layer[3]] = (TC0360PRI_regs[4] >> 4) & 0x0f;
+	tc0480scp_pri[layer[4]] = (TC0360PRI_regs[6] >> 4) & 0x0f;
+
+	tc0620scc_pri[pivlayer[0]] = (TC0360PRI_regs[7] >> 4) & 0x0f;
+	tc0620scc_pri[pivlayer[1]] = TC0360PRI_regs[7] & 0x0f;
+
+	sprite_pri[0] = TC0360PRI_regs[8] & 0x0f;
+	sprite_pri[1] = (TC0360PRI_regs[8] >> 4) & 0x0f;
+	sprite_pri[2] = TC0360PRI_regs[9] & 0x0f;
+	sprite_pri[3] = (TC0360PRI_regs[9] >> 4) & 0x0f;
+
+	fillbitmap(priority_bitmap,0,cliprect);
+	fillbitmap(bitmap,Machine->pens[0],cliprect);	/* wrong color? */
+
+	for (p = 0; p < 16; p++)
+	{
+		/* TODO: verify layer order when multiple tilemap layers has same priority value */
+		const UINT8 prival = p + 1; /* +1 for pdrawgfx */
+
+		for (scc = 0; scc < 2; scc++)
+		{
+			if (tc0620scc_pri[pivlayer[scc]] == p)
+				TC0100SCN_tilemap_draw(bitmap, cliprect, 0, pivlayer[scc], (scc == 0) ? TILEMAP_IGNORE_TRANSPARENCY : 0, /*prival*/ p);
+		}
+
+		for (scp = 0; scp < 4; scp++)
+		{
+#ifdef MAME_DEBUG
+			if (dislayer[layer[scp]]==0)
+#endif
+			if (tc0480scp_pri[layer[scp]] == p)
+				TC0480SCP_tilemap_draw(bitmap, cliprect, layer[scp], 0, prival);
+		}
+#ifdef MAME_DEBUG
+		if (dislayer[layer[4]]==0)
+#endif
+		if (tc0480scp_pri[layer[4]] == p)
+			TC0480SCP_tilemap_draw(bitmap, cliprect, layer[4], 0, prival);
+  }
+
+	/* Sprites have variable priority */
+#ifdef MAME_DEBUG
+	if (dislayer[5]==0)
+#endif
+	draw_sprites_cbombers_16x16(bitmap,cliprect,sprite_pri,80,-210);
+
+	TC0100SCN_tilemap_draw(bitmap, cliprect, 0, pivlayer[2], 0, 0); /* TODO: correct? */
+
+/* Enable this to see rotation (?) control words */
+#if 0
+	{
+		char buf[80];
+		int i;
+
+		for (i = 0; i < 8; i += 1)
+		{
+			sprintf (buf, "%02x: %04x", i, undrfire_rotate_ctrl[i]);
+			ui_draw_text (buf, 0, i*8);
 		}
 	}
 #endif

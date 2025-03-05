@@ -8,6 +8,7 @@
 #include "vidhrdw/generic.h"
 
 data16_t *gaiden_videoram,*gaiden_videoram2,*gaiden_videoram3;
+INT8 tx_offset_y, bg_offset_y, fg_offset_y, spr_offset_y;
 int gaiden_sprite_sizey;
 int raiga_alpha;
 
@@ -88,6 +89,14 @@ VIDEO_START( gaiden )
 	tilemap_set_transparent_pen(background, 0);
 	tilemap_set_transparent_pen(foreground, 0);
 	tilemap_set_transparent_pen(text_layer, 0);
+	
+	tilemap_set_scrolldy(background, 0, 33);
+	tilemap_set_scrolldy(foreground, 0, 33);
+	tilemap_set_scrolldy(text_layer, 0, 31);
+
+	tilemap_set_scrolldx(background, 0, -1);
+	tilemap_set_scrolldx(foreground, 0, -1);
+	tilemap_set_scrolldx(text_layer, 0, -1);
 
 	return 0;
 }
@@ -121,6 +130,25 @@ VIDEO_START( raiga )
 	return 0;
 }
 
+VIDEO_START( drgnbowl )
+{
+	/* set up tile layers */
+	background = tilemap_create(get_bg_tile_info, tilemap_scan_rows, TILEMAP_OPAQUE,      16, 16, 64, 32);
+	foreground = tilemap_create(get_fg_tile_info, tilemap_scan_rows, TILEMAP_TRANSPARENT, 16, 16, 64, 32);
+	text_layer = tilemap_create(get_tx_tile_info, tilemap_scan_rows, TILEMAP_TRANSPARENT,  8,  8, 32, 32);
+
+	if (!text_layer || !foreground || !background)
+		return 1;
+
+	tilemap_set_transparent_pen(foreground, 15);
+	tilemap_set_transparent_pen(text_layer, 15);
+
+	tilemap_set_scrolldx(background, -248, 248);
+	tilemap_set_scrolldx(foreground, -252, 252);
+
+	return 0;
+}
+
 
 
 /***************************************************************************
@@ -128,6 +156,12 @@ VIDEO_START( raiga )
   Memory handlers
 
 ***************************************************************************/
+
+WRITE16_HANDLER( gaiden_flip_w )
+{
+	if (ACCESSING_LSB)
+		flip_screen_set(data & 1);
+}
 
 WRITE16_HANDLER( gaiden_txscrollx_w )
 {
@@ -140,7 +174,7 @@ WRITE16_HANDLER( gaiden_txscrolly_w )
 {
 	static data16_t scroll;
 	COMBINE_DATA(&scroll);
-	tilemap_set_scrolly(text_layer, 0, scroll);
+	tilemap_set_scrolly(text_layer, 0, (scroll - tx_offset_y) & 0xffff);
 }
 
 WRITE16_HANDLER( gaiden_fgscrollx_w )
@@ -154,7 +188,7 @@ WRITE16_HANDLER( gaiden_fgscrolly_w )
 {
 	static data16_t scroll;
 	COMBINE_DATA(&scroll);
-	tilemap_set_scrolly(foreground, 0, scroll);
+	tilemap_set_scrolly(foreground, 0, (scroll - fg_offset_y) & 0xffff);
 }
 
 WRITE16_HANDLER( gaiden_bgscrollx_w )
@@ -168,7 +202,42 @@ WRITE16_HANDLER( gaiden_bgscrolly_w )
 {
 	static data16_t scroll;
 	COMBINE_DATA(&scroll);
-	tilemap_set_scrolly(background, 0, scroll);
+	tilemap_set_scrolly(background, 0, (scroll - bg_offset_y) & 0xffff);
+}
+
+WRITE16_HANDLER( gaiden_txoffsety_w )
+{
+    static data16_t scroll;
+	if (ACCESSING_LSB) {
+		tx_offset_y = data;
+		tilemap_set_scrolly(text_layer, 0, (scroll - tx_offset_y) & 0xffff);
+	}
+}
+
+WRITE16_HANDLER( gaiden_fgoffsety_w )
+{
+    static data16_t scroll;
+	if (ACCESSING_LSB) {
+		fg_offset_y = data;
+		tilemap_set_scrolly(foreground, 0, (scroll - fg_offset_y) & 0xffff);
+	}
+}
+
+WRITE16_HANDLER( gaiden_bgoffsety_w )
+{
+    static data16_t scroll;
+	if (ACCESSING_LSB) {
+		bg_offset_y = data;
+		tilemap_set_scrolly(background, 0, (scroll - bg_offset_y) & 0xffff);
+	}
+}
+
+WRITE16_HANDLER( gaiden_sproffsety_w )
+{
+	if (ACCESSING_LSB) {
+		spr_offset_y = data;
+		/* handled in draw_sprites */
+	}
 }
 
 WRITE16_HANDLER( gaiden_videoram3_w )
@@ -177,12 +246,6 @@ WRITE16_HANDLER( gaiden_videoram3_w )
 	COMBINE_DATA(&gaiden_videoram3[offset]);
 	if (oldword != gaiden_videoram3[offset])
 		tilemap_mark_tile_dirty(background,offset & 0x07ff);
-}
-
-WRITE16_HANDLER( gaiden_flip_w )
-{
-	if (ACCESSING_LSB)
-		flip_screen_set(data & 1);
 }
 
 
@@ -332,7 +395,7 @@ static void blendbitmaps(
 
 /* sprite format:
  *
- *	word		bit					usage
+ *  word        bit                 usage
  * --------+-fedcba9876543210-+----------------
  *    0    | ---------------x | flip x
  *         | --------------x- | flip y
@@ -389,7 +452,7 @@ static void draw_sprites(struct mame_bitmap *bitmap_bg, struct mame_bitmap *bitm
 			/* raiga needs something like this */
 			UINT32 number = (source[1] & (sizex > 2 ? 0x7ff8 : 0x7ffc));
 
-			int ypos = source[3] & 0x01ff;
+			int ypos = (source[3] + spr_offset_y) & 0x01ff;
 			int xpos = source[4] & 0x01ff;
 
 			if (!blend_support && (attributes & 0x20) && (cpu_getcurrentframe() & 1))
@@ -477,6 +540,66 @@ skip_sprite:
 	}
 }
 
+
+/* sprite format:
+ *
+ *  word        bit                 usage
+ * --------+-fedcba9876543210-+----------------
+ *    0    | --------xxxxxxxx | sprite code (lower bits)
+ *         | ---xxxxx-------- | unused ?
+ *    1    | --------xxxxxxxx | y position
+ *         | ------x--------- | unused ?
+ *    2    | --------xxxxxxxx | x position
+ *         | -------x-------- | unused ?
+ *    3    | -----------xxxxx | sprite code (upper bits)
+ *         | ----------x----- | sprite-tile priority
+ *         | ---------x------ | flip x
+ *         | --------x------- | flip y
+ * 0x400   |-------------xxxx | color
+ *         |---------x------- | x position (high bit)
+ */
+
+static void drgnbowl_draw_sprites(struct mame_bitmap *bitmap, const struct rectangle *cliprect)
+{
+	int i, code, color, x, y, flipx, flipy, priority_mask;
+
+	for( i = 0; i < 0x800/2; i += 4 )
+	{
+		code = (spriteram16[i + 0] & 0xff) | ((spriteram16[i + 3] & 0x1f) << 8);
+		y = 256 - (spriteram16[i + 1] & 0xff) - 12;
+		x = spriteram16[i + 2] & 0xff;
+		color = (spriteram16[(0x800/2) + i] & 0x0f);
+		flipx = spriteram16[i + 3] & 0x40;
+		flipy = spriteram16[i + 3] & 0x80;
+
+		if(spriteram16[(0x800/2) + i] & 0x80)
+			x -= 256;
+
+		x += 256;
+
+		if(spriteram16[i + 3] & 0x20)
+			priority_mask = 0xf0 | 0xcc; /* obscured by foreground */
+		else
+			priority_mask = 0;
+
+		pdrawgfx(bitmap,Machine->gfx[3],
+				code,
+				color,flipx,flipy,x,y,
+				cliprect,
+				TRANSPARENCY_PEN,15,
+				priority_mask);
+
+		/* wrap x*/
+		pdrawgfx(bitmap,Machine->gfx[3],
+				code,
+				color,flipx,flipy,x-512,y,
+				cliprect,
+				TRANSPARENCY_PEN,15,
+				priority_mask);
+
+	}
+}
+
 VIDEO_UPDATE( gaiden )
 {
 	fillbitmap(priority_bitmap,                    0, cliprect);
@@ -510,4 +633,14 @@ VIDEO_UPDATE( raiga )
 
 	/* mix & blend the tilemaps and sprites into a 32-bit bitmap */
 	blendbitmaps(bitmap, tile_bitmap_bg, tile_bitmap_fg, sprite_bitmap, 0, 0, cliprect);
+}
+
+VIDEO_UPDATE( drgnbowl )
+{
+	fillbitmap(priority_bitmap, 0, cliprect);
+
+	tilemap_draw(bitmap, cliprect, background, 0, 1);
+	tilemap_draw(bitmap, cliprect, foreground, 0, 2);
+	tilemap_draw(bitmap, cliprect, text_layer, 0, 4);
+	drgnbowl_draw_sprites(bitmap, cliprect);
 }

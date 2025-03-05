@@ -72,6 +72,7 @@ write:
 #include "driver.h"
 #include "vidhrdw/generic.h"
 #include "cpu/i8039/i8039.h"
+#include "artwork.h"
 
 
 
@@ -114,6 +115,14 @@ WRITE_HANDLER( frogs_sh_port2_w );
 void croak_callback(int param);
 mame_timer *croak_timer;
 
+#define OVERLAY_LTR_BLUE        MAKE_ARGB(0x04,0x2f,0x6d,0xa5)
+
+/* Overlay based on sources: */
+/* https://flyers.arcade-museum.com/?page=flyer&db=videodb&id=1701&image=1 */
+OVERLAY_START( depthch_overlay )
+    OVERLAY_RECT(  0, 0,  256, 224, OVERLAY_LTR_BLUE )
+OVERLAY_END
+
 static MACHINE_INIT( frogs )
 {
 	croak_timer = timer_alloc(croak_callback);
@@ -152,11 +161,11 @@ WRITE_HANDLER( frogs_sh_port2_w )
 
 
 	if (data & 0x01)
-		sample_start (3, 3, 0);	// Hop
+		sample_start (3, 3, 0);	/* Hop */
 if (data & 0x02)
-		sample_start (0, 0, 0);	// Boing
+		sample_start (0, 0, 0);	/* Boing */
 	if (new_croak)
-		sample_start (2, 2, 0);	// Croak
+		sample_start (2, 2, 0);	/* Croak */
 	else
 	{
 		if (last_croak)
@@ -179,12 +188,12 @@ if (data & 0x02)
 		 * 12 seconds.
 		 */
 		if (!last_buzzz)
-			sample_start (1, 1, 1);	// Buzzz
+			sample_start (1, 1, 1);	/* Buzzz */
 	}
 	else
 		sample_stop(1);
 	if (data & 0x80)
-		sample_start (4, 4, 0);	// Splash
+		sample_start (4, 4, 0);	/* Splash */
 
 	last_croak = new_croak;
 	last_buzzz = new_buzzz;
@@ -640,7 +649,7 @@ INPUT_PORTS_START( samurai )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_VBLANK ) /* either vblank, or a timer. In the */
                                             /* Carnival schematics, it's a timer. */
-/*	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNKNOWN )  // timer /*/
+/*	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNKNOWN )*/  /* timer */
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_START1 )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_BUTTON1 )
 	PORT_BIT( 0xc0, IP_ACTIVE_LOW, IPT_UNUSED )
@@ -1987,6 +1996,9 @@ static DRIVER_INIT( depthch )
 	install_port_write_handler(0, 0x04, 0x04, depthch_sh_port1_w);
 
 	vicdual_decode();
+
+	artwork_set_overlay(depthch_overlay);
+
 }
 
 static DRIVER_INIT( samurai )

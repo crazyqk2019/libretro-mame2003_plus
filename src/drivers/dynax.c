@@ -49,7 +49,7 @@ TODO:
 - Inputs are grossly mapped, especially for the card games.
 
 - mjdialq2: the title screen is corrupted by the scrolling logo. This would be
-  fixed by not wrapping around when drawing bìpast the bottom of the bitmap,
+  fixed by not wrapping around when drawing bÃ¬past the bottom of the bitmap,
   but doing so would break the last picture of gal 6 (which is scrolled up so
   that the bottom of the bitmap is near the middle of the screen).
 
@@ -2583,7 +2583,7 @@ ROM_START( inca )
 	/* blitter data will be decrypted here*/
 
 	ROM_REGION( 0x400, REGION_PROMS, ROMREGION_DISPOSE )	/* Color PROMs */
-	ROM_LOAD( "n82s147n.2",  0x000, 0x200, CRC(268bd9d3) SHA1(1f77d9dc58ab29f013ee21d7ec521b90be72610d) )	// FIXED BITS (0xxxxxxx)
+	ROM_LOAD( "n82s147n.2",  0x000, 0x200, CRC(268bd9d3) SHA1(1f77d9dc58ab29f013ee21d7ec521b90be72610d) )	/* FIXED BITS (0xxxxxxx) */
 	ROM_LOAD( "n82s147n.1",  0x200, 0x200, CRC(618dbeb3) SHA1(10c8a558430fd1c2cabf9133d3e4f0a5f80eab83) )
 ROM_END
 
@@ -2986,8 +2986,7 @@ GAME ( 1991, yarunara, 0,        yarunara, yarunara, 0,    ROT180, "Dynax",     
 GAMEX( 1991, mjangels, 0,        yarunara, yarunara, 0,    ROT180, "Dynax",                  "Mahjong Angels - Comic Theater Vol.2 (Japan)",         GAME_IMPERFECT_GRAPHICS )
 GAME ( 1992, quiztvqq, 0,        yarunara, quiztvqq, 0,    ROT180, "Dynax",                  "Quiz TV Gassyuukoku QandQ (Japan)"                       )
 GAME ( 1994, maya,     0,        sprtmtch, sprtmtch, maya, ROT0,   "Promat",                 "Maya"                                                  )
-GAME ( 199?, inca,     maya,     sprtmtch, sprtmtch, maya,     ROT0,   "unknown",                 "Inca"                                                  )
-
+GAME ( 199?, inca,     maya,     sprtmtch, sprtmtch, maya, ROT0,   "unknown",                "Inca"                                                  )
 
 /* should move these to splash.c, its a protected bootleg of splash, not dynax stuff */
 GAMEX(1993, roldfrog, 0,        roldfrog, sprtmtch, 0,    ROT0,   "Microhard", "The Return of Lady Frog", GAME_NOT_WORKING )

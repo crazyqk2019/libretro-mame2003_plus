@@ -191,7 +191,6 @@ offs_t encrypted_opcode_start[MAX_CPU],encrypted_opcode_end[MAX_CPU];
 	PROTOTYPES
 -------------------------------------------------*/
 
-static int CLIB_DECL fatalerror(const char *string, ...);
 static UINT8 get_handler_index(struct handler_data *table, void *handler, offs_t start);
 static UINT8 alloc_new_subtable(const struct memport_data *memport, struct table_data *tabledata, UINT8 previous_value);
 static void populate_table(struct memport_data *memport, int iswrite, offs_t start, offs_t stop, UINT8 handler);
@@ -725,22 +724,6 @@ void install_port_write32_handler(int cpunum, offs_t start, offs_t end, port_wri
 
 
 /*-------------------------------------------------
-	fatalerror - display an error message and
-	exit immediately
--------------------------------------------------*/
-
-int CLIB_DECL fatalerror(const char *string, ...)
-{
-	va_list arg;
-	va_start(arg, string);
-	log_cb(RETRO_LOG_ERROR, string, arg);
-	va_end(arg);
-	exit(1);
-	return 0;
-}
-
-
-/*-------------------------------------------------
 	memory_find_base - return a pointer to the
 	base of RAM associated with the given CPU
 	and offset
@@ -1214,7 +1197,7 @@ static int verify_memory(void)
 				if ((mra->end & MEMPORT_DIRECTION_MASK) != MEMPORT_DIRECTION_READ)
 					return fatalerror("cpu #%d has memory write handlers in place of memory read handlers!\n", cpunum);
 				if ((mra->end & MEMPORT_WIDTH_MASK) != width)
-					return fatalerror("cpu #%d uses wrong data width memory handlers! (width = %d, memory = %08x)\n", cpunum,cpunum_databus_width(cpunum),mra->end);
+					return fatalerror("cpu #%d uses wrong data width memory read handlers! (width = %d, memory = %08x)\n", cpunum,cpunum_databus_width(cpunum),mra->end);
 				mra++;
 			}
 
@@ -1239,7 +1222,7 @@ static int verify_memory(void)
 				if ((mwa->end & MEMPORT_DIRECTION_MASK) != MEMPORT_DIRECTION_WRITE)
 					return fatalerror("cpu #%d has memory read handlers in place of memory write handlers!\n", cpunum);
 				if ((mwa->end & MEMPORT_WIDTH_MASK) != width)
-					return fatalerror("cpu #%d uses wrong data width memory handlers! (width = %d, memory = %08x)\n", cpunum,cpunum_databus_width(cpunum),mwa->end);
+					return fatalerror("cpu #%d uses wrong data width memory write handlers! (width = %d, memory = %08x)\n", cpunum,cpunum_databus_width(cpunum),mwa->end);
 				mwa++;
 			}
 

@@ -162,37 +162,17 @@ static READ_HANDLER( wacko_trackball_r )
 
 static READ_HANDLER( twotigra_yoke1_r )
 {
-	int p1_yoke = readinputport(6);
-	if (p1_yoke & 0x10)
-	{
-		if ((p1_yoke & 0x01) != 0x01) return 0;
-		if ((p1_yoke & 0x02) != 0x02) return 255;
-		return 100;
-	}
-	else
-	{
-		p1_yoke = readinputport(2);
-		if (p1_yoke < 0x1b) return 0;
-		return p1_yoke - 0x1b;
-	}
+  int p1_yoke = readinputport(2);
+  if (p1_yoke < 0x1b) return 0;
+  return p1_yoke - 0x1b;
 }
 
 
 static READ_HANDLER( twotigra_yoke2_r )
 {
-	int p1_yoke = readinputport(6);
-	if (p1_yoke & 0x10)
-	{
-		if ((p1_yoke & 0x04) != 0x04) return 0;
-		if ((p1_yoke & 0x08) != 0x08) return 255;
-		return 100;
-	}
-	else
-	{
-		p1_yoke = readinputport(1);
-		if (p1_yoke < 0x1b) return 0;
-		return p1_yoke - 0x1b;
-	}
+  int p1_yoke = readinputport(1);
+  if (p1_yoke < 0x1b) return 0;
+  return p1_yoke - 0x1b;
 }
 
 static WRITE_HANDLER( twotiger_sample_select_w )
@@ -270,17 +250,17 @@ PORT_END
  *************************************/
 
 INPUT_PORTS_START( shollow )
-	PORT_START	/* IN0 */
+	PORT_START	/* J4 1-8 */
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_COIN2 )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_START1 )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_START2 )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNUSED )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_TILT )
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_SERVICE( 0x80, IP_ACTIVE_LOW )
 
-	PORT_START	/* IN1 */
+	PORT_START	/* J4 10-13,15-18 */
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT | IPF_2WAY )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_2WAY )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_BUTTON2 )
@@ -290,20 +270,22 @@ INPUT_PORTS_START( shollow )
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_COCKTAIL )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_COCKTAIL )
 
-	PORT_START	/* IN2 unused */
+	PORT_START	/* J5 1-8 */
 	PORT_BIT( 0xff, IP_ACTIVE_LOW, IPT_UNUSED )
 
-	PORT_START	/* IN3 -- dipswitches */
-	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_START	/* DIPSW @ B3 */
+	PORT_DIPNAME( 0x01, 0x01, "Coin Meters" )
+	PORT_DIPSETTING(    0x01, "1" )
+	PORT_DIPSETTING(    0x00, "2" )
 	PORT_DIPNAME( 0x02, 0x00, DEF_STR( Cabinet ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
 	PORT_DIPSETTING(    0x02, DEF_STR( Cocktail ) )
 	PORT_BIT( 0xfc, IP_ACTIVE_LOW, IPT_UNKNOWN )
 
-	PORT_START	/* IN4 unused */
+	PORT_START	/* J6 1-8 */
 	PORT_BIT( 0xff, IP_ACTIVE_LOW, IPT_UNUSED )
 
-	PORT_START	/* AIN0 */
+	PORT_START
 	PORT_BIT( 0xff, IP_ACTIVE_LOW, IPT_UNKNOWN )
 INPUT_PORTS_END
 
@@ -357,8 +339,8 @@ INPUT_PORTS_START( tronfp )
 	PORT_START	/* IN0 */
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_COIN2 )
-//	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_START1 )
-//	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_START2 )
+/*	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_START1 ) */
+/*	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_START2 ) */
 	PORT_BIT_IMPULSE( 0x04, IP_ACTIVE_LOW, IPT_START1, 1 )
 	PORT_BIT_IMPULSE( 0x08, IP_ACTIVE_LOW, IPT_START2, 1 )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON1 )
@@ -392,7 +374,7 @@ INPUT_PORTS_START( tronfp )
 	PORT_DIPNAME( 0x08, 0x08, "freeplay" )
 	PORT_DIPSETTING(      0x08, DEF_STR( Off ) )
 	PORT_DIPSETTING(      0x00, DEF_STR( On ) )
-//	PORT_BIT( 0xf8, IP_ACTIVE_LOW, IPT_UNUSED )
+/*	PORT_BIT( 0xf8, IP_ACTIVE_LOW, IPT_UNUSED ) */
 
 	PORT_START	/* IN4 */
 	PORT_ANALOG( 0xff, 0x00, IPT_DIAL | IPF_REVERSE | IPF_COCKTAIL, 50, 10, 0, 0 )
@@ -497,43 +479,44 @@ INPUT_PORTS_END
 
 
 INPUT_PORTS_START( journey )
-	PORT_START	/* IN0 */
+	PORT_START	/* J4 1-8 */
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_COIN2 )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_START1 )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_START2 )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON1 )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_TILT )
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_COIN3 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_SERVICE1 )
 	PORT_SERVICE( 0x80, IP_ACTIVE_LOW )
 
-	PORT_START	/* IN1 */
+	PORT_START	/* J4 10-13,15-18 */
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT | IPF_8WAY )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_UP | IPF_8WAY )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN | IPF_8WAY )
+	PORT_BIT( 0xf0, IP_ACTIVE_LOW, IPT_UNUSED )
 
-	PORT_START	/* IN2 unused */
+	PORT_START	/* J5 1-8 */
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT | IPF_8WAY | IPF_COCKTAIL )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_COCKTAIL )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_UP | IPF_8WAY | IPF_COCKTAIL )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN | IPF_8WAY | IPF_COCKTAIL )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_COCKTAIL )
+	PORT_BIT( 0xe0, IP_ACTIVE_LOW, IPT_UNUSED )
 
-	PORT_START	/* IN3 -- dipswitches */
-	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_UNUSED )
-	PORT_DIPNAME( 0x02, 0x00, DEF_STR( Cabinet) )
-	PORT_DIPSETTING(    0x00, DEF_STR (Upright))
-	PORT_DIPSETTING(    0x02, DEF_STR (Cocktail ))
-	PORT_BIT( 0x3c, IP_ACTIVE_LOW, IPT_UNUSED )
-	PORT_DIPNAME( 0x80, 0x00, "Coin Meters" )
-	PORT_DIPSETTING(    0x80, "1" )
+	PORT_START	/* DIPSW @ B3 */
+	PORT_DIPNAME( 0x01, 0x01, "Coin Meters" )
+	PORT_DIPSETTING(    0x01, "1" )
 	PORT_DIPSETTING(    0x00, "2" )
+	PORT_DIPNAME( 0x02, 0x00, DEF_STR( Cabinet ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
+	PORT_DIPSETTING(    0x02, DEF_STR( Cocktail ) )
+	PORT_BIT( 0xfc, IP_ACTIVE_LOW, IPT_UNUSED )
 
-	PORT_START	/* IN4 unused */
+	PORT_START	/* J6 1-8 */
 	PORT_BIT( 0xff, IP_ACTIVE_LOW, IPT_UNKNOWN )
 
-	PORT_START	/* AIN0 */
+	PORT_START
 	PORT_BIT( 0xff, IP_ACTIVE_LOW, IPT_UNKNOWN )
 INPUT_PORTS_END
 
@@ -636,9 +619,9 @@ INPUT_PORTS_START( twotigra )
 	PORT_ANALOG( 0xff, 0x7f, IPT_AD_STICK_X | IPF_PLAYER1, 100, 10, 0, 255 )
 
 	PORT_START	/* IN3 -- dipswitches */
-	PORT_DIPNAME( 0x01, 0x00, "Shot Speed" )
-	PORT_DIPSETTING(    0x01, "Fast" )
-	PORT_DIPSETTING(    0x00, "Slow" )
+	PORT_DIPNAME( 0x01, 0x00, "Shot Type" )
+	PORT_DIPSETTING(    0x01, "Single Fire" )
+	PORT_DIPSETTING(    0x00, "Rapid Fire" )
 	PORT_DIPNAME( 0x02, 0x00, "Dogfight" )
 	PORT_DIPSETTING(    0x00, "1 Credit" )
 	PORT_DIPSETTING(    0x02, "2 Credits" )
@@ -657,14 +640,6 @@ INPUT_PORTS_START( twotigra )
 	PORT_START	/* AIN0 */
 	PORT_BIT( 0xff, IP_ACTIVE_LOW, IPT_UNKNOWN )
 
-	PORT_START	/* IN6 fake for yoke */
-	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT | IPF_2WAY )
-	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_2WAY )
-	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT | IPF_2WAY | IPF_PLAYER2 )
-	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_2WAY | IPF_PLAYER2 )
-	PORT_DIPNAME( 0x10, 0x10, "Fake Inputs " )
-	PORT_DIPSETTING(    0x10, "Digital" )
-	PORT_DIPSETTING(    0x00, "Analog" )
 INPUT_PORTS_END
 
 
@@ -759,7 +734,7 @@ static MACHINE_DRIVER_START( twotigra )
 	/* video hardware */
 	MDRV_VIDEO_START(twotigra)
 
-  /* sound hardware */
+	/* sound hardware */
 	MDRV_SOUND_ADD(SAMPLES, twotiger_samples_interface )
 MACHINE_DRIVER_END
 
@@ -1164,7 +1139,7 @@ static DRIVER_INIT( twotigra )
 	install_port_write_handler(0, 0x00, 0x00, mcr_control_port_w);
 	install_port_read_handler(0, 0x01, 0x01, twotigra_yoke2_r);
 	install_port_read_handler(0, 0x02, 0x02, twotigra_yoke1_r);
-  install_port_write_handler(0, 0x04, 0x04, twotiger_sample_select_w);
+	install_port_write_handler(0, 0x04, 0x04, twotiger_sample_select_w);
 	install_mem_write_handler(0, 0xf800, 0xffff, twotigra_videoram_w);
 
 	mcr12_sprite_xoffs = 0;

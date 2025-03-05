@@ -203,9 +203,9 @@ MEMORY_END
 
 static WRITE_HANDLER( D7759_write_port_0_w )
 {
-	UPD7759_port_w(offset,data);
-	UPD7759_start_w (0,0);
-	UPD7759_start_w (0,1);
+	upd7759_port_w(offset,data);
+	upd7759_start_w (0,0);
+	upd7759_start_w (0,1);
 }
 
 static PORT_READ_START( sound_readport )
@@ -216,7 +216,7 @@ static PORT_WRITE_START( sound_writeport )
 	{ 0x00, 0x00, YM3812_control_port_0_w },
 	{ 0x20, 0x20, YM3812_write_port_0_w },
 	{ 0x40, 0x40, D7759_write_port_0_w },
-	{ 0x80, 0x80, UPD7759_0_reset_w },
+	{ 0x80, 0x80, upd7759_0_reset_w },
 PORT_END
 
 /******************************************************************************/
@@ -453,10 +453,10 @@ INPUT_PORTS_START( searchar )
 	PORT_DIPSETTING(	0xc0, "Hardest" )
 
 	PORT_START	/* player 1 12-way rotary control - converted in controls_r() */
-	PORT_ANALOGX( 0xff, 0x00, IPT_DIAL | IPF_REVERSE, 25, 10, 0, 0, KEYCODE_Z, KEYCODE_X, IP_JOY_NONE, IP_JOY_NONE )
+	PORT_ANALOGX( 0xff, 0x0a, IPT_DIAL | IPF_REVERSE, 25, 10, 0, 0, KEYCODE_Z, KEYCODE_X, IP_JOY_NONE, IP_JOY_NONE )
 
 	PORT_START	/* player 2 12-way rotary control - converted in controls_r() */
-	PORT_ANALOGX( 0xff, 0x00, IPT_DIAL | IPF_REVERSE | IPF_PLAYER2, 25, 10, 0, 0, KEYCODE_N, KEYCODE_M, IP_JOY_NONE, IP_JOY_NONE )
+	PORT_ANALOGX( 0xff, 0x0a, IPT_DIAL | IPF_REVERSE | IPF_PLAYER2, 25, 10, 0, 0, KEYCODE_N, KEYCODE_M, IP_JOY_NONE, IP_JOY_NONE )
 INPUT_PORTS_END
 
 INPUT_PORTS_START( streetsm )
@@ -703,10 +703,10 @@ INPUT_PORTS_START( ikari3 )
 	PORT_DIPSETTING(	0xc0, "Hardest" )
 
 	PORT_START	/* player 1 12-way rotary control - converted in controls_r() */
-	PORT_ANALOGX( 0xff, 0x00, IPT_DIAL | IPF_REVERSE, 25, 10, 0, 0, KEYCODE_Z, KEYCODE_X, IP_JOY_NONE, IP_JOY_NONE )
+	PORT_ANALOGX( 0xff, 0x0a, IPT_DIAL | IPF_REVERSE, 25, 10, 0, 0, KEYCODE_Z, KEYCODE_X, IP_JOY_NONE, IP_JOY_NONE )
 
 	PORT_START	/* player 2 12-way rotary control - converted in controls_r() */
-	PORT_ANALOGX( 0xff, 0x00, IPT_DIAL | IPF_REVERSE | IPF_PLAYER2, 25, 10, 0, 0, KEYCODE_N, KEYCODE_M, IP_JOY_NONE, IP_JOY_NONE )
+	PORT_ANALOGX( 0xff, 0x0a, IPT_DIAL | IPF_REVERSE | IPF_PLAYER2, 25, 10, 0, 0, KEYCODE_N, KEYCODE_M, IP_JOY_NONE, IP_JOY_NONE )
 INPUT_PORTS_END
 
 /******************************************************************************/
@@ -795,16 +795,16 @@ static struct YM3812interface ym3812_interface =
 {
 	1,			/* 1 chip */
 	4000000,	/* 4 MHz - accurate for POW, should be accurate for others */
-	{ 100 },
+	{ 50 },
 	{ irqhandler },
 };
 
-static struct UPD7759_interface upd7759_interface =
+static struct upd7759_interface upd7759_interface =
 {
 	1,		/* number of chips */
-	{ 50 }, /* volume */
+	{ UPD7759_STANDARD_CLOCK },
+	{ 70 }, /* volume */
 	{ REGION_SOUND1 },		/* memory region */
-	UPD7759_STANDALONE_MODE,		/* chip mode */
 	{0}
 };
 
@@ -1258,4 +1258,3 @@ GAME( 1989, streetsw, streetsm, searchar, streetsj, 0,		  ROT0,  "SNK", "Street 
 GAME( 1989, streetsj, streetsm, searchar, streetsj, 0,		  ROT0,  "SNK", "Street Smart (Japan version 1)" )
 GAME( 1989, ikari3,   0,	ikari3,   ikari3,   searchar,     ROT0,  "SNK", "Ikari III - The Rescue (US, Rotary Joystick)" )
 GAME( 1989, ikari3nr, ikari3,   ikari3,   ikari3,   searchar,     ROT0,  "SNK", "Ikari III - The Rescue (World, 8-Way Joystick)" )
-

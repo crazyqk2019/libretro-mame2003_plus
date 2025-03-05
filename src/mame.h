@@ -26,18 +26,6 @@
 extern int gbPriorityBitmapIsDirty;
 extern retro_environment_t environ_cb;
 
-/***************************************************************************
-
-	Parameters
-
-***************************************************************************/
-
-#define FRAMES_PER_FPS_UPDATE		12
-
-#define MAX_GFX_ELEMENTS 32
-#define MAX_MEMORY_REGIONS 32
-
-#define APPNAME					"mame2003-plus"
 
 /***************************************************************************
 
@@ -160,6 +148,7 @@ struct RunningMachine
 #define ARTWORK_USE_BACKDROPS	0x01
 #define ARTWORK_USE_OVERLAYS	0x02
 #define ARTWORK_USE_BEZELS		0x04
+#define ARTWORK_OVERLAY_DEFAULT		(-1) /* Set if using hardcoded opacity */
 
 enum /* used to index content-specific flags */
 {
@@ -175,15 +164,19 @@ enum /* used to index content-specific flags */
   CONTENT_AD_STICK,
   CONTENT_HAS_SERVICE,
   CONTENT_HAS_TILT,
+  CONTENT_HAS_PEDAL,
+  CONTENT_HAS_PEDAL2,
   CONTENT_ALTERNATING_CTRLS,
   CONTENT_MIRRORED_CTRLS,
   CONTENT_ROTATE_JOY_45,
   CONTENT_PLAYER_COUNT,
   CONTENT_CTRL_COUNT,
+  CONTENT_DUAL_JOYSTICK,
   CONTENT_BUTTON_COUNT,
+  CONTENT_LIGHTGUN_COUNT,
   CONTENT_JOYSTICK_DIRECTIONS,
-  CONTENT_DCS_SPEEDHACK,
   CONTENT_NVRAM_BOOTSTRAP,
+  CONTENT_CHEAT_INPUT_PORT,
   CONTENT_end,
 };
 
@@ -210,20 +203,22 @@ struct GameOptions
   bool     all_ctrls;            /* show unused controls in the frontend remapper */
 
   unsigned dial_share_xy;
-  unsigned mouse_device;
-  unsigned input_interface;                /* can be set to RETRO_DEVICE_JOYPAD, RETRO_DEVICE_KEYBOARD, or 0 (both simultaneously) */
-  unsigned retropad_layout[DISP_PLAYER6];  /* flags to indicate the default layout for each player */
-  bool 	   restrict_4_way;                 /* simulate 4-way joystick restrictor */
-  unsigned analog;                         /* analog enable/disable */
-  unsigned deadzone;                       /* analog deadzone in percent. 20 corresponds to 20% */
+  bool     dial_swap_xy;
+  unsigned xy_device;
+  bool     use_lightgun_with_pad;
+  unsigned input_interface;                         /* can be set to RETRO_DEVICE_JOYPAD, RETRO_DEVICE_KEYBOARD, or 0 (both simultaneously) */
+  unsigned active_control_type[MAX_PLAYER_COUNT];   /* register to indicate the default control layout for each player as currently set in the frontend */
+  bool     restrict_4_way;                          /* simulate 4-way joystick restrictor */
   unsigned tate_mode;
 
   int      crosshair_enable;
-  unsigned activate_dcs_speedhack;
+  int      crosshair_appearance;
+  
   bool     mame_remapping;       /* display MAME input remapping menu */
 
   int      samplerate;		       /* sound sample playback rate, in KHz */
   bool     use_samples;	         /* 1 to enable external .wav samples */
+  bool     use_alt_sound;	       /* 1 to enable alternate ost samples */
 
   float	   brightness;		       /* brightness of the display */
   float	   pause_bright;		     /* additional brightness when in pause */
@@ -244,6 +239,7 @@ struct GameOptions
   int      use_artwork;	         /* bitfield indicating which artwork pieces to use */
   int      artwork_res;	         /* 1 for 1x game scaling, 2 for 2x */
   int      artwork_crop;	       /* 1 to crop artwork to the game screen */
+  int      overlay_opacity;	       /* overlay opacity used in any hardcoded overlays */
 
   char     savegame;		         /* character representing a savegame to load */
   int      crc_only;             /* specify if only CRC should be used as checksum */
@@ -258,9 +254,15 @@ struct GameOptions
   int      debug_height;	       /* requested height of debugger bitmap */
   int      debug_depth;	         /* requested depth of debugger bitmap */
   bool     cheat_input_ports;     /*cheat input ports enable/disable */
-  bool     machine_timing;
-  bool     digital_analog;
-  };
+  int      override_ad_stick;
+  bool     input_toggle;
+  bool     digital_joy_centering; /* center digital joysticks enable/disable */
+  double   cpu_clock_scale;
+  int      autosave_hiscore;      /* default saves on exit / recursively saves every number of frames defined in hiscore.c / disabled bypasses hiscore implementation entirely */
+#if (HAS_CYCLONE || HAS_DRZ80)
+  int      cyclone_mode;
+#endif
+};
 
 
 

@@ -40,6 +40,12 @@ struct mame_bitmap
 	void (*plot_box)(struct mame_bitmap *bitmap,int x,int y,int width,int height,pen_t pen);
 };
 
+#define BITMAP_ADDR(bitmap, type, y, x)	\
+	((type *)(bitmap)->base + (y) * (bitmap)->rowpixels + (x))
+
+#define BITMAP_ADDR8(bitmap, y, x)	BITMAP_ADDR(bitmap, UINT8, y, x)
+#define BITMAP_ADDR16(bitmap, y, x)	BITMAP_ADDR(bitmap, UINT16, y, x)
+#define BITMAP_ADDR32(bitmap, y, x)	BITMAP_ADDR(bitmap, UINT32, y, x)
 
 struct RomModule
 {
@@ -97,7 +103,7 @@ struct GameSamples
 	struct GameSample *sample[1];	/* extendable */
 };
  
-#define	GAME_SAMPLE_LARGE		10000000 // 10MB
+#define	GAME_SAMPLE_LARGE		10000000 /* 10MB */
 
 /***************************************************************************
 
@@ -142,6 +148,7 @@ enum
 	REGION_USER7,
 	REGION_USER8,
 	REGION_DISKS,
+	audiocrypt,
 	REGION_MAX
 };
 
@@ -351,6 +358,12 @@ enum
 #define ROM_LOAD32_WORD_SWAP(name,offset,length,hash)ROMX_LOAD(name, offset, length, hash, ROM_GROUPWORD | ROM_REVERSE | ROM_SKIP(2))
 #define ROM_LOAD32_DWORD(name,offset,length,hash)    ROMX_LOAD(name, offset, length, hash, ROM_GROUPDWORD)
 
+/* ----- new-style 64-bit loading macros ----- */
+#define ROM_LOAD64_BYTE(name,offset,length,hash)        ROMX_LOAD(name, offset, length, hash, ROM_SKIP(7))
+#define ROM_LOAD64_WORD(name,offset,length,hash)    ROMX_LOAD(name, offset, length, hash, ROM_GROUPWORD | ROM_SKIP(6))
+#define ROM_LOAD64_WORD_SWAP(name,offset,length,hash) ROMX_LOAD(name, offset, length, hash, ROM_GROUPWORD | ROM_REVERSE | ROM_SKIP(6))
+#define ROM_LOAD64_DWORD_SWAP(name,offset,length,hash) ROMX_LOAD(name, offset, length, hash, ROM_GROUPDWORD | ROM_REVERSE | ROM_SKIP(4))
+
 /* ----- disk loading macros ----- */
 #define DISK_REGION(type)							ROM_REGION(1, type, ROMREGION_DATATYPEDISK)
 #define DISK_IMAGE(name,idx,hash)                    ROMMD5_LOAD(name, idx, 0, hash, DISK_READWRITE)
@@ -550,6 +563,14 @@ void printromlist(const struct RomModule *romp,const char *name);
          (BIT(val, B2) <<  2) | \
          (BIT(val, B1) <<  1) | \
          (BIT(val, B0) <<  0))
+
+/* Standard MIN/MAX macros */
+#ifndef MIN
+#define MIN(x,y)			((x) < (y) ? (x) : (y))
+#endif
+#ifndef MAX
+#define MAX(x,y)			((x) > (y) ? (x) : (y))
+#endif
 
 
 #ifdef __cplusplus

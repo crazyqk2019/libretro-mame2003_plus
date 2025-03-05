@@ -139,6 +139,9 @@ static data16_t *gx_sndram;
 static int gx_rdport1_3, gx_syncen;
 
 static void *dmadelay_timer;
+void fantjour_dma_install();
+WRITE32_HANDLER(fantjour_dma_w);
+
 
 /**********************************************************************************/
 /*
@@ -907,16 +910,24 @@ static WRITE32_HANDLER( adc0834_w )
 
 static READ32_HANDLER( le2_gun_H_r )
 {
-	int p1x = readinputport(9)*287/0xff+22;
-	int p2x = readinputport(11)*287/0xff+22;
+	int p1x = readinputport(9)*290/0xff+20;
+	int p2x = readinputport(11)*290/0xff+20;
+
+	/* make "off the left" reload too */
+	if (p1x <= 0x15) p1x = 310;
+	if (p2x <= 0x15) p2x = 310;
 
 	return (p1x<<16)|p2x;
 }
 
 static READ32_HANDLER( le2_gun_V_r )
 {
-	int p1y = readinputport(10)*223/0xff+1;
-	int p2y = readinputport(12)*223/0xff+1;
+	int p1y = readinputport(10)*224/0xff;
+	int p2y = readinputport(12)*224/0xff;
+
+	/* make "off the bottom" reload too */
+	if (p1y >= 0xdf) p1y = 0;
+	if (p2y >= 0xdf) p2y = 0;
 
 	return (p1y<<16)|p2y;
 }
@@ -1906,18 +1917,130 @@ INPUT_PORTS_START( le2 )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
 
 	PORT_START /* mask default type                     sens delta min max */
-	PORT_ANALOG( 0xff, 0x00, IPT_LIGHTGUN_X | IPF_PLAYER1, 35, 15, 0, 0xff )
+	PORT_ANALOG( 0xff, 0x80, IPT_LIGHTGUN_X | IPF_PLAYER1, 35, 15, 0, 0xff )
 
 	PORT_START
-	PORT_ANALOG( 0xff, 0x00, IPT_LIGHTGUN_Y | IPF_PLAYER1, 35, 15, 0, 0xff )
+	PORT_ANALOG( 0xff, 0x80, IPT_LIGHTGUN_Y | IPF_PLAYER1, 35, 15, 0, 0xff )
 
 	PORT_START
-	PORT_ANALOG( 0xff, 0x00, IPT_LIGHTGUN_X | IPF_PLAYER2, 35, 15, 0, 0xff )
+	PORT_ANALOG( 0xff, 0x80, IPT_LIGHTGUN_X | IPF_PLAYER2, 35, 15, 0, 0xff )
 
 	PORT_START
-	PORT_ANALOG( 0xff, 0x00, IPT_LIGHTGUN_Y | IPF_PLAYER2, 35, 15, 0, 0xff )
+	PORT_ANALOG( 0xff, 0x80, IPT_LIGHTGUN_Y | IPF_PLAYER2, 35, 15, 0, 0xff )
 INPUT_PORTS_END
 
+INPUT_PORTS_START( le2_flip )
+	PORT_START
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_COIN1 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_COIN2 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_SERVICE1 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_SERVICE2 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
+
+	PORT_START
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER1 )	/* for gun games */
+	PORT_BITX(0x08, IP_ACTIVE_LOW, IPT_SERVICE, DEF_STR( Service_Mode ), KEYCODE_F2, IP_JOY_NONE )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
+
+	PORT_START
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_PLAYER1 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER1 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER1 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_BUTTON3 | IPF_PLAYER1 )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_START1 )
+
+	PORT_START
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_PLAYER2 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER2 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER2 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_BUTTON3 | IPF_PLAYER2 )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_START2 )
+
+	PORT_START
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_PLAYER3 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER3 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_PLAYER3 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_PLAYER3 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER3 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER3 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_BUTTON3 | IPF_PLAYER3 )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_START3 )
+
+	PORT_START
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  | IPF_8WAY | IPF_PLAYER4 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT | IPF_8WAY | IPF_PLAYER4 )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_UP    | IPF_8WAY | IPF_PLAYER4 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN  | IPF_8WAY | IPF_PLAYER4 )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER4 )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_BUTTON2 | IPF_PLAYER4 )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_BUTTON3 | IPF_PLAYER4 )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_START4 )
+
+	PORT_START
+	PORT_DIPNAME( 0x01, 0x01, "Stereo")
+	PORT_DIPSETTING(    0x01, "Stereo")
+	PORT_DIPSETTING(    0x00, "Mono")
+	PORT_DIPNAME( 0x02, 0x02, "Coin Mechanism")
+	PORT_DIPSETTING(    0x02, "Common")
+	PORT_DIPSETTING(    0x00, "Independant")
+	PORT_DIPNAME( 0x04, 0x04, "Stage Select" )
+	PORT_DIPSETTING(    0x04, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x08, 0x00, "Mirror" )
+	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x08, DEF_STR( On ) )
+	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Flip_Screen ) )
+	PORT_DIPSETTING(    0x10, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(    0x40, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unknown ) )
+	PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
+	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+
+	PORT_START
+	PORT_BIT( 0xff, IP_ACTIVE_LOW, IPT_UNKNOWN )
+
+	PORT_START
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_BUTTON1 | IPF_PLAYER2 )	/* for gun games */
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
+
+	PORT_START /* mask default type                     sens delta min max */
+	PORT_ANALOG( 0xff, 0x80, IPT_LIGHTGUN_X | IPF_PLAYER1, 35, 15, 0, 0xff )
+
+	PORT_START
+	PORT_ANALOG( 0xff, 0x80, IPT_LIGHTGUN_Y | IPF_PLAYER1 | IPF_REVERSE, 35, 15, 0, 0xff )
+
+	PORT_START
+	PORT_ANALOG( 0xff, 0x80, IPT_LIGHTGUN_X | IPF_PLAYER2, 35, 15, 0, 0xff )
+
+	PORT_START
+	PORT_ANALOG( 0xff, 0x80, IPT_LIGHTGUN_Y | IPF_PLAYER2 | IPF_REVERSE, 35, 15, 0, 0xff )
+INPUT_PORTS_END
 
 INPUT_PORTS_START( gokuparo )
 	PORT_START
@@ -2451,7 +2574,7 @@ ROM_START( daiskiss )
 	ROM_LOAD( "535a22.9g", 0x000000, 2*1024*1024, CRC(7ee59acb) SHA1(782bf15f205e9fe7bd069f6445eb8187837dee32) )
 ROM_END
 
-/* Sexy Parodius */
+/* Sexy Parodius Japan */
 ROM_START( sexyparo )
 	/* main program */
 	ROM_REGION( 0x300000, REGION_CPU1, 0 )
@@ -2463,6 +2586,36 @@ ROM_START( sexyparo )
 	ROM_REGION( 0x40000, REGION_CPU2, 0 )
 	ROM_LOAD16_BYTE("533a08.9c", 0x000000, 128*1024, CRC(06d14cff) SHA1(21c01a06eabfacc4ac1d83bfad389f3dfa41b95f) )
 	ROM_LOAD16_BYTE("533a09.7c", 0x000001, 128*1024, CRC(a93c6f0b) SHA1(bee1abab985c7163212cad1a4bc0a427804dfed3) )
+
+	/* tiles */
+	ROM_REGION( 0x500000, REGION_GFX1, ROMREGION_ERASE00 )
+	TILE_WORD_ROM_LOAD( "533a19.17h", 0x000000, 2*1024*1024, CRC(3ec1843e) SHA1(5d2c37f1eb299c846daa63f35ccd5334a516a1f5) )
+	TILE_BYTE_ROM_LOAD( "533-ja.13g", 0x000004, 512*1024,    CRC(d3e0d058) SHA1(c50bdb3493501bfbbe092d01f5d4c38bfa3412f8) )
+
+	/* sprites */
+	ROM_REGION( 0x600000, REGION_GFX2, ROMREGION_ERASE00 )
+	ROM_LOAD32_WORD( "533a17.25g", 0x000000, 2*1024*1024, CRC(9947af57) SHA1(a8f67cb49cf55e8402de352bb530c7c90c643144) )
+	ROM_LOAD32_WORD( "533a13.28g", 0x000002, 2*1024*1024, CRC(58f1fc38) SHA1(9662b4fb036ffe90f294ee36fa52a0c1e1dbd116) )
+	ROM_LOAD( "533a11.30g", 0x400000, 2*1024*1024, CRC(983105e1) SHA1(c688f6f73fab16107f01523081558a2e02a5311c) )
+
+	/* sound data */
+	ROM_REGION( 0x400000, REGION_SOUND1, 0 )
+	ROM_LOAD( "533a22.9g", 0x000000, 2*1024*1024, CRC(97233814) SHA1(dba20a81517796b7baf7c82551bd7f1c1a8ecd7e) )
+	ROM_LOAD( "533a23.7g", 0x200000, 2*1024*1024, CRC(1bb7552b) SHA1(3c6f96b4ab97737c3634c08b94dd304d5517d88d) )
+ROM_END
+
+/* Sexy Parodius Asia */
+ROM_START( sexyparoa )
+	/* main program */
+	ROM_REGION( 0x300000, REGION_CPU1, 0 )
+	GX_BIOS
+	ROM_LOAD32_WORD_SWAP( "533aaa02.31b", 0x200002, 512*1024, CRC(4fdc4298) SHA1(6aa0d6d00dada9d1bfe2b29cd342b11e2d42bf5a) )
+	ROM_LOAD32_WORD_SWAP( "533aaa03.27b", 0x200000, 512*1024, CRC(9c5e07cb) SHA1(4d7dbd9b0e47d501ab3f22c48942bb9e54450d87) )
+
+	/* sound program */
+	ROM_REGION( 0x40000, REGION_CPU2, 0 )
+	ROM_LOAD16_BYTE("533aaa08.9c", 0x000000, 128*1024, CRC(f2e2c963) SHA1(5b4ac1df208467cfac2927ce0b340090d631f190) )
+	ROM_LOAD16_BYTE("533aaa09.7c", 0x000001, 128*1024, CRC(49086451) SHA1(8fdbeb5889e476dfd3f31619d5b5280a0494de69) )
 
 	/* tiles */
 	ROM_REGION( 0x500000, REGION_GFX1, ROMREGION_ERASE00 )
@@ -2750,10 +2903,47 @@ ROM_END
 /* Dragoon Might */
 ROM_START( dragoonj )
 	/* main program */
-	ROM_REGION( 0x600000, REGION_CPU1, 0 )
+	ROM_REGION( 0x800000,REGION_CPU1, 0 )
 	GX_BIOS
 	ROM_LOAD32_WORD_SWAP( "417jaa02.31b", 0x200002, 512*1024, CRC(533cbbd5) SHA1(4b7a0345ce0e503c647c7cde6f284ad0ee10f0ff) )
 	ROM_LOAD32_WORD_SWAP( "417jaa03.27b", 0x200000, 512*1024, CRC(8e1f883f) SHA1(e9f25c0fae7491c55812fda336436a2884c4d417) )
+
+	/* data roms */
+	ROM_LOAD32_WORD_SWAP( "417a04.26c", 0x400002, 1024*1024, CRC(dc574747) SHA1(43cbb6a08c27bb96bb25568c3b636c44fff3e08e) )
+	ROM_LOAD32_WORD_SWAP( "417a05.23c", 0x400000, 1024*1024, CRC(2ee2c587) SHA1(a1b2b288c375a3406d4b12e66c973484c03fe26e) )
+
+	/* sound program */
+	ROM_REGION( 0x40000, REGION_CPU2, 0 )
+	ROM_LOAD16_BYTE("417a06.9c", 0x000000, 128*1024, CRC(8addbbee) SHA1(fdb38fab1fd65b7362578b108bf6128e926b5f13) )
+	ROM_LOAD16_BYTE("417a07.7c", 0x000001, 128*1024, CRC(c1fd7584) SHA1(1b204165ef07b6b53f47adc16eed69d11dab53b2) )
+
+	/* tiles */
+	ROM_REGION( 0x400000, REGION_GFX1, ROMREGION_ERASE00 )
+	TILE_WORD_ROM_LOAD( "417a16.17h", 0x000000, 2*1024*1024, CRC(88b2213b) SHA1(ac4ac57618cf98d7486b147f5494e6943bff1a4d) )
+
+	/* sprites */
+	ROM_REGION( 0x1000000, REGION_GFX2, ROMREGION_ERASE00 )
+	ROM_LOAD32_WORD( "417a15.25g", 0x000000, 2*1024*1024, CRC(83bccd01) SHA1(c0e65c43115164c3f64ac14a449c65c4e3e3c4cf) )
+	ROM_LOAD32_WORD( "417a11.28g", 0x000002, 2*1024*1024, CRC(624a7c4c) SHA1(5fda37cd02b4dcb328b80b29041214c685c77a78) )
+	ROM_LOAD32_WORD( "417a14.18h", 0x400000, 2*1024*1024, CRC(fbf551f1) SHA1(871c5804aba9845aa04596db51def3ba3b8bae30) )
+	ROM_LOAD32_WORD( "417a10.27g", 0x400002, 2*1024*1024, CRC(18fde49f) SHA1(f85b2981172be2cddc5d691bb803f0133a36cb1a) )
+	ROM_LOAD32_WORD( "417a13.20h", 0x800000, 2*1024*1024, CRC(d2e3959d) SHA1(efe516e6b84c67c0a154726a0f7f7054ee866738) )
+	ROM_LOAD32_WORD( "417a09.30g", 0x800002, 2*1024*1024, CRC(b5653e24) SHA1(ffa44d6b65feef298fa4dcc064ebd173c7cc22aa) )
+	ROM_LOAD32_WORD( "417a12.23h", 0xc00000, 2*1024*1024, CRC(25496115) SHA1(e53164f8ad95187011059c465a67fff1d18ba888) )
+	ROM_LOAD32_WORD( "417a08.33g", 0xc00002, 2*1024*1024, CRC(801e9d93) SHA1(9364d802b4ca03e652b25304c8298be8de8936b4) )
+
+	/* sound data */
+	ROM_REGION( 0x200000, REGION_SOUND1, 0 )
+	ROM_LOAD( "417a17.9g", 0x000000, 2*1024*1024, CRC(88d47dfd) SHA1(b5d6dd7ee9ac0c427dc3e714a97945c954260913) )
+ROM_END
+
+/* Dragoon Might (Asia) */
+ROM_START( dragoona )
+	/* main program */
+	ROM_REGION( 0x800000,REGION_CPU1, 0 )
+	GX_BIOS
+	ROM_LOAD32_WORD_SWAP( "417aab02.31b", 0x200002, 512*1024, CRC(0421c19c) SHA1(7b79685047df996f6eda6d9bd6327d7a1cf40dd6) )
+	ROM_LOAD32_WORD_SWAP( "417aab03.27b", 0x200000, 512*1024, CRC(813dd8d5) SHA1(fb07e4836662d179902b751fefcf19f004a4f009) )
 
 	/* data roms */
 	ROM_LOAD32_WORD_SWAP( "417a04.26c", 0x400002, 1024*1024, CRC(dc574747) SHA1(43cbb6a08c27bb96bb25568c3b636c44fff3e08e) )
@@ -3112,6 +3302,81 @@ MACHINE_INIT(konamigx)
 	cpu_set_halt_line(1, ASSERT_LINE);
 }
 
+static UINT32 fantjour_dma[8];
+
+void fantjour_dma_install()
+{
+	install_mem_write32_handler(0, 0xdb0000, 0xdb001f, fantjour_dma_w);
+	memset(fantjour_dma, 0, sizeof(fantjour_dma));
+}
+
+
+/* potentially misaligned 32-bit reads with a 32-bit data bus (and 24-bit address bus) */
+static data32_t readlong_a24_d32(offs_t address)
+{
+	data32_t result;
+
+	if (!(address & 3))
+		return cpu_readmem24bedw_dword(address);
+	else if (!(address & 1))
+	{
+		result = cpu_readmem24bedw_word(address) << 16;
+		return result | cpu_readmem24bedw_word(address + 2);
+	}
+	result = cpu_readmem24bedw(address) << 24;
+	result |= cpu_readmem24bedw_word(address + 1) << 8;
+	return result | cpu_readmem24bedw(address + 3);
+}
+
+/* potentially misaligned 32-bit writes with a 32-bit data bus (and 24-bit address bus) */
+static void writelong_a24_d32(offs_t address, data32_t data)
+{
+	if (!(address & 3))
+	{
+		cpu_writemem24bedw_dword(address, data);
+		return;
+	}
+	else if (!(address & 1))
+	{
+		cpu_writemem24bedw_word(address, data >> 16);
+		cpu_writemem24bedw_word(address + 2, data);
+		return;
+	}
+	cpu_writemem24bedw(address, data >> 24);
+	cpu_writemem24bedw_word(address + 1, data >> 8);
+	cpu_writemem24bedw(address + 3, data);
+}
+
+WRITE32_HANDLER(fantjour_dma_w)
+{
+	COMBINE_DATA(fantjour_dma + offset);
+	if(!offset && ACCESSING_MSB32) {
+		UINT32 sa = fantjour_dma[1];
+		UINT32 da = ((fantjour_dma[3] & 0xffff) << 16) | ((fantjour_dma[4] & 0xffff0000) >> 16);
+		UINT32 db = fantjour_dma[5];
+
+		UINT8 sz2 = fantjour_dma[0] >> 16;
+		UINT8 mode = fantjour_dma[0] >> 24;
+		UINT32 x   = fantjour_dma[6];
+		UINT32 i1, i2;
+
+		if(mode == 0x93)
+			for(i1=0; i1 <= sz2; i1++)
+				for(i2=0; i2 < db; i2+=4) {
+					/* program_read_dword program_write_dword */
+					 writelong_a24_d32(da, readlong_a24_d32(sa) ^ x); /* correct.?? */
+					da += 4;
+					sa += 4;
+				}
+		else if(mode == 0x8f)
+			for(i1=0; i1 <= sz2; i1++)
+				for(i2=0; i2 < db; i2+=4) {
+					 writelong_a24_d32(da, x); /* correct.?? */
+					da += 4;
+				}
+	}
+}
+
 static DRIVER_INIT(konamigx)
 {
 #define BPP5  1
@@ -3158,7 +3423,7 @@ static DRIVER_INIT(konamigx)
 		konamigx_cfgport = 13;
 	}
 
-	else if (!strcmp(Machine->gamedrv->name, "gokuparo") || !strcmp(Machine->gamedrv->name, "fantjour"))
+	else if (!strcmp(Machine->gamedrv->name, "gokuparo"))
 	{
 		#if GX_SKIPIDLE
 			ADD_SKIPPER32(0x2a0a66, 0xc00000, 0xd400, 0xd400, 0, 0xffff0000)
@@ -3166,6 +3431,17 @@ static DRIVER_INIT(konamigx)
 
 		readback = BPP5;
 		konamigx_cfgport = 7;
+	}
+
+	else if (!strcmp(Machine->gamedrv->name, "fantjour"))
+	{
+		#if GX_SKIPIDLE
+			ADD_SKIPPER32(0x2a0a66, 0xc00000, 0xd400, 0xd400, 0, 0xffff0000)
+		#endif
+
+		readback = BPP5;
+		konamigx_cfgport = 7;
+		fantjour_dma_install(); /* protection */
 	}
 
 	else if (!strcmp(Machine->gamedrv->name, "puzldama"))
@@ -3214,7 +3490,7 @@ static DRIVER_INIT(konamigx)
 		for (i=3; i<=7; i++) K054539_set_gain(1, i, 2.0);
 	}
 
-	else if (!strcmp(Machine->gamedrv->name, "dragoonj"))
+	else if (!strcmp(Machine->gamedrv->name, "dragoonj") || !strcmp(Machine->gamedrv->name, "dragoona") )
 	{
 		int i;
 		esc_cb = dragoonj_esc;
@@ -3228,7 +3504,7 @@ static DRIVER_INIT(konamigx)
 		}
 	}
 
-	else if (!strcmp(Machine->gamedrv->name, "sexyparo"))
+	else if (!strcmp(Machine->gamedrv->name, "sexyparo") || !strcmp(Machine->gamedrv->name, "sexyparoa"))
 	{
 		#if GX_SKIPIDLE
 			ADD_SKIPPER32(0x289baa, 0xc00000, 0x10204, 0x10204, 0, 0xffff0000)
@@ -3344,19 +3620,21 @@ GAMEX( 1994, ggreats2, opengolf, opengolf,  racinfrc, konamigx, ROT0, "Konami", 
 /* Type 2: totally stock, sometimes with funny protection chips on the ROM board */
 /* these games work and are playable with minor graphics glitches */
 GAMEX( 1994, le2,      konamigx, le2,      le2,      konamigx, ROT0, "Konami", "Lethal Enforcers II - Gun Fighters (ver EAA)", GAME_IMPERFECT_GRAPHICS )
-GAMEX( 1994, le2u,     le2,      le2,      le2,      konamigx, ROT0, "Konami", "Lethal Enforcers II - Gun Fighters (ver UAA)", GAME_IMPERFECT_GRAPHICS )
+GAMEX( 1994, le2u,     le2,      le2,      le2_flip, konamigx, ORIENTATION_FLIP_Y, "Konami", "Lethal Enforcers II - Gun Fighters (ver UAA)", GAME_IMPERFECT_GRAPHICS )
 GAMEX( 1994, gokuparo, konamigx, konamigx, gokuparo, konamigx, ROT0, "Konami", "Gokujyou Parodius (ver JAD)", GAME_IMPERFECT_GRAPHICS )
+GAMEX( 1994, fantjour, gokuparo, konamigx, gokuparo, konamigx, ROT0, "Konami", "Fantastic Journey", GAME_IMPERFECT_GRAPHICS )
 GAMEX( 1994, puzldama, konamigx, konamigx, puzldama, konamigx, ROT0, "Konami", "Taisen Puzzle-dama (ver JAA)", GAME_IMPERFECT_GRAPHICS )
 GAMEX( 1995, tbyahhoo, konamigx, konamigx, gokuparo, konamigx, ROT0, "Konami", "Twin Bee Yahhoo! (ver JAA)", GAME_IMPERFECT_GRAPHICS )
 GAMEX( 1995, tkmmpzdm, konamigx, konamigx_6bpp, puzldama, konamigx, ROT0, "Konami", "Tokimeki Memorial Taisen Puzzle-dama (ver JAB)", GAME_IMPERFECT_GRAPHICS )
-GAMEX( 1995, dragoonj, konamigx, dragoonj, dragoonj, konamigx, ROT0, "Konami", "Dragoon Might (ver JAA)", GAME_IMPERFECT_GRAPHICS )
+GAMEX( 1995, dragoona, konamigx, dragoonj, dragoonj, konamigx, ROT0, "Konami", "Dragoon Might (ver AAB)", GAME_IMPERFECT_GRAPHICS )
+GAMEX( 1995, dragoonj, dragoona, dragoonj, dragoonj, konamigx, ROT0, "Konami", "Dragoon Might (ver JAA)", GAME_IMPERFECT_GRAPHICS )
 GAMEX( 1996, sexyparo, konamigx, konamigx, gokuparo, konamigx, ROT0, "Konami", "Sexy Parodius (ver JAA)", GAME_IMPERFECT_GRAPHICS )
+GAMEX( 1996, sexyparoa,sexyparo, konamigx, gokuparo, konamigx, ROT0, "Konami", "Sexy Parodius (ver AAA)", GAME_IMPERFECT_GRAPHICS )
 GAMEX( 1996, daiskiss, konamigx, konamigx, gokuparo, konamigx, ROT0, "Konami", "Daisu-Kiss (ver JAA)", GAME_IMPERFECT_GRAPHICS )
 GAMEX( 1996, tokkae,   konamigx, konamigx_6bpp, puzldama, konamigx, ROT0, "Konami", "Taisen Tokkae-dama (ver JAA)", GAME_IMPERFECT_GRAPHICS )
 GAMEX( 1996, salmndr2, konamigx, konamigx_6bpp_2, gokuparo, konamigx, ROT0, "Konami", "Salamander 2 (ver JAA)", GAME_IMPERFECT_GRAPHICS|GAME_UNEMULATED_PROTECTION )
 
 /* these games are unplayable due to protection (winspike has the same FPGA protection as the type 4 games) */
-GAMEX( 1994, fantjour, gokuparo, konamigx, gokuparo, konamigx, ROT0, "Konami", "Fantastic Journey", GAME_NOT_WORKING|GAME_UNEMULATED_PROTECTION )
 GAMEX( 1997, winspike, konamigx, winspike, konamigx, konamigx, ROT0, "Konami", "Winning Spike (ver JAA)", GAME_UNEMULATED_PROTECTION | GAME_IMPERFECT_GRAPHICS | GAME_NOT_WORKING  )
 
 
@@ -3369,3 +3647,4 @@ GAMEX( 1996, vsnetscr, konamigx, gxtype4, type3, konamigx, ROT0, "Konami", "Vers
 GAMEX( 1996, rungun2,  konamigx, gxtype4, type3, konamigx, ROT0, "Konami", "Run and Gun 2 (ver UAA)", GAME_NOT_WORKING|GAME_UNEMULATED_PROTECTION )
 GAMEX( 1996, slamdnk2, rungun2,  gxtype4, type3, konamigx, ROT0, "Konami", "Slam Dunk 2 (ver JAA)", GAME_NOT_WORKING|GAME_UNEMULATED_PROTECTION )
 GAMEX( 1996, rushhero, konamigx, gxtype4, type3, konamigx, ROT0, "Konami", "Rushing Heroes (ver UAB)", GAME_UNEMULATED_PROTECTION | GAME_NOT_WORKING  )
+

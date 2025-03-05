@@ -15,7 +15,10 @@ Credits:
 
 #include "driver.h"
 #include "vidhrdw/generic.h"
+#include "vidhrdw/konamiic.h"
 #include "cpu/m6809/m6809.h"
+#include "cpu/hd6309/hd6309.h"
+#include "ost_samples.h"
 
 extern unsigned char *contra_fg_vram,*contra_fg_cram;
 extern unsigned char *contra_bg_vram,*contra_bg_cram;
@@ -35,6 +38,11 @@ WRITE_HANDLER( contra_K007121_ctrl_1_w );
 VIDEO_UPDATE( contra );
 VIDEO_START( contra );
 
+static INTERRUPT_GEN( contra_interrupt )
+{
+	if (K007121_ctrlram[0][0x07] & 0x02)
+		cpu_set_irq_line(0, HD6309_IRQ_LINE, HOLD_LINE);
+}
 
 WRITE_HANDLER( contra_bankswitch_w )
 {
@@ -45,6 +53,9 @@ WRITE_HANDLER( contra_bankswitch_w )
 	bankaddress = 0x10000 + (data & 0x0f) * 0x2000;
 	if (bankaddress < 0x28000)	/* for safety */
 		cpu_setbank(1,&RAM[bankaddress]);
+    else
+		usrintf_showmessage("bankswitch %X", data & 0xf);
+
 }
 
 WRITE_HANDLER( contra_sh_irqtrigger_w )
@@ -56,32 +67,87 @@ WRITE_HANDLER( contra_coin_counter_w )
 {
 	if (data & 0x01) coin_counter_w(0,data & 0x01);
 	if (data & 0x02) coin_counter_w(1,(data & 0x02) >> 1);
+
+	if( ost_support_enabled(OST_SUPPORT_CONTRA) )
+		ost_fade_volume();
 }
 
 static WRITE_HANDLER( cpu_sound_command_w )
 {
-	soundlatch_w(offset,data);
+	if( ost_support_enabled(OST_SUPPORT_CONTRA) ) {
+		if(generate_ost_sound( data ))
+			soundlatch_w(offset,data);
+	}
+	else
+		soundlatch_w(offset,data);
+}
+
+UINT32 math_regs[6];
+UINT16 multiply_result;
+UINT16 divide_quotient;
+UINT16 divide_remainder;
+
+
+READ_HANDLER(contra_k007452_r)
+{
+	switch (offset & 7)
+	{
+		case 0: return multiply_result & 0xff;
+		case 1: return (multiply_result >> 8) & 0xff;
+		case 2: return divide_remainder & 0xff;
+		case 3: return (divide_remainder >> 8) & 0xff;
+		case 4:	return divide_quotient & 0xff;
+		case 5: return (divide_quotient >> 8) & 0xff;
+		default: return 0;
+	}
 }
 
 
+WRITE_HANDLER(contra_k007452_w)
+{
+	if (offset < 6) math_regs[offset] = data;
+
+	if (offset == 1)
+	{
+		/* Starts multiplication process */
+		multiply_result = math_regs[0] * math_regs[1];
+	}
+	else if (offset == 5)
+	{
+		/* Starts division process */
+		UINT16 dividend = (math_regs[4]<<8) + math_regs[5];
+		UINT16 divisor = (math_regs[2]<<8) + math_regs[3];
+		if (!divisor) {
+			divide_quotient = 0xffff;
+			divide_remainder = 0x0000;
+		} else {
+			divide_quotient = dividend / divisor;
+			divide_remainder = dividend % divisor;
+		}
+	}
+}
+
 
 static MEMORY_READ_START( readmem )
+  { 0x0008, 0x000f, contra_k007452_r },
 	{ 0x0010, 0x0010, input_port_0_r },		/* IN0 */
 	{ 0x0011, 0x0011, input_port_1_r },		/* IN1 */
 	{ 0x0012, 0x0012, input_port_2_r },		/* IN2 */
-
 	{ 0x0014, 0x0014, input_port_3_r },		/* DIPSW1 */
 	{ 0x0015, 0x0015, input_port_4_r },		/* DIPSW2 */
 	{ 0x0016, 0x0016, input_port_5_r },		/* DIPSW3 */
-
 	{ 0x0c00, 0x0cff, MRA_RAM },
 	{ 0x1000, 0x5fff, MRA_RAM },
+	{ 0x3000, 0x3fff, MRA_RAM },
+	{ 0x4800, 0x4fff, MRA_RAM },
+	{ 0x5000, 0x5fff, MRA_RAM },
 	{ 0x6000, 0x7fff, MRA_BANK1 },
 	{ 0x8000, 0xffff, MRA_ROM },
 MEMORY_END
 
 static MEMORY_WRITE_START( writemem )
 	{ 0x0000, 0x0007, contra_K007121_ctrl_0_w },
+	{ 0x0008, 0x000f, contra_k007452_w },
 	{ 0x0018, 0x0018, contra_coin_counter_w },
 	{ 0x001a, 0x001a, contra_sh_irqtrigger_w },
 	{ 0x001c, 0x001c, cpu_sound_command_w },
@@ -93,11 +159,11 @@ static MEMORY_WRITE_START( writemem )
 	{ 0x2400, 0x27ff, contra_fg_vram_w, &contra_fg_vram },
 	{ 0x2800, 0x2bff, contra_text_cram_w, &contra_text_cram },
 	{ 0x2c00, 0x2fff, contra_text_vram_w, &contra_text_vram },
-	{ 0x3000, 0x37ff, MWA_RAM, &spriteram },/* 2nd bank is at 0x5000 */
-	{ 0x3800, 0x3fff, MWA_RAM }, /* second sprite buffer*/
+	{ 0x3000, 0x3fff, MWA_RAM, &spriteram },
 	{ 0x4000, 0x43ff, contra_bg_cram_w, &contra_bg_cram },
 	{ 0x4400, 0x47ff, contra_bg_vram_w, &contra_bg_vram },
-	{ 0x4800, 0x5fff, MWA_RAM },
+	{ 0x4800, 0x4fff, MWA_RAM },
+	{ 0x5000, 0x5fff, MWA_RAM, &spriteram_2 },
 	{ 0x6000, 0x6fff, MWA_ROM },
  	{ 0x7000, 0x7000, contra_bankswitch_w },
 	{ 0x7001, 0xffff, MWA_ROM },
@@ -257,18 +323,18 @@ static struct YM2151interface ym2151_interface =
 
 static MACHINE_DRIVER_START( contra )
 
-	/* basic machine hardware */
- 	MDRV_CPU_ADD(M6809, 1500000)
+	/* basic machine hardware */ 
+ 	MDRV_CPU_ADD(HD6309, 3000000) /* 24MHz/8 */
 	MDRV_CPU_MEMORY(readmem,writemem)
-	MDRV_CPU_VBLANK_INT(irq0_line_hold,1)
+	MDRV_CPU_VBLANK_INT(contra_interrupt,1)
 
- 	MDRV_CPU_ADD(M6809, 2000000)
+ 	MDRV_CPU_ADD(M6809, 3579545)	/* 3.579545 MHz */
 	MDRV_CPU_FLAGS(CPU_AUDIO_CPU)
 	MDRV_CPU_MEMORY(readmem_sound,writemem_sound)
 
 	MDRV_FRAMES_PER_SECOND(60)
 	MDRV_VBLANK_DURATION(DEFAULT_REAL_60HZ_VBLANK_DURATION)
-	MDRV_INTERLEAVE(10)	/* 10 CPU slices per frame - enough for the sound CPU to read all commands */
+	MDRV_INTERLEAVE(100)	/* 100 CPU slices per frame - enough for the sound CPU to read all commands */
 
 	/* video hardware */
 	MDRV_VIDEO_ATTRIBUTES(VIDEO_TYPE_RASTER)
@@ -285,6 +351,8 @@ static MACHINE_DRIVER_START( contra )
 	/* sound hardware */
 	MDRV_SOUND_ATTRIBUTES(SOUND_SUPPORTS_STEREO)
 	MDRV_SOUND_ADD(YM2151, ym2151_interface)
+
+	MDRV_INSTALL_OST_SUPPORT(OST_SUPPORT_CONTRA)
 MACHINE_DRIVER_END
 
 

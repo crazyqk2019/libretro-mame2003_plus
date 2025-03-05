@@ -146,7 +146,7 @@ static int build_decoded_waveform(int region)
 
 
 /* generate sound by oversampling */
-INLINE UINT32 namco_update_one(INT16 *buffer, int length, const INT16 *wave, UINT32 counter, UINT32 freq)
+static INLINE UINT32 namco_update_one(INT16 *buffer, int length, const INT16 *wave, UINT32 counter, UINT32 freq)
 {
 	while (length-- > 0)
 	{
@@ -557,10 +557,10 @@ WRITE_HANDLER( polepos_sound_w )
 	case 0x02:
 	case 0x03:
 		voice->volume[0] = voice->volume[1] = 0;
-		// front speakers ?
+		/* front speakers ? */
 		voice->volume[0] += namco_soundregs[ch * 4 + 0x03] >> 4;
 		voice->volume[1] += namco_soundregs[ch * 4 + 0x03] & 0x0f;
-		// rear speakers ?
+		/* rear speakers ? */
 		voice->volume[0] += namco_soundregs[ch * 4 + 0x23] >> 4;
 		voice->volume[1] += namco_soundregs[ch * 4 + 0x02] >> 4;
 
@@ -595,11 +595,6 @@ WRITE_HANDLER( polepos_sound_w )
 	0x3e		ch 7	waveform select & frequency
 */
 
-
-WRITE_HANDLER( mappy_sound_enable_w ) //remove this when drivers are updated this is so our old drivers work
-{
-	sound_enable = offset;
-}
 
 void mappy_sound_enable(int enable)
 {

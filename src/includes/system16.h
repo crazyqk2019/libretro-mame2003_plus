@@ -6,6 +6,7 @@
 #define SYS16_SPR_PARTIAL_SHADOW			0x40 /* pen #10 */
 #define SYS16_SPR_DRAW_TO_TOP				0x80
 
+
 struct sys16_sprite_attributes {
 	int priority, flags;
 	int gfx, color;
@@ -28,6 +29,7 @@ extern int sys16_sprite_hangon( struct sys16_sprite_attributes *sprite, const UI
 extern int sys16_sprite_sharrier( struct sys16_sprite_attributes *sprite, const UINT16 *source, int bJustGetColor );
 extern int sys16_sprite_outrun( struct sys16_sprite_attributes *sprite, const UINT16 *source, int bJustGetColor );
 extern int sys16_sprite_aburner( struct sys16_sprite_attributes *sprite, const UINT16 *source, int bJustGetColor );
+extern int sys16_sprite_fantzn2x( struct sys16_sprite_attributes *sprite, const UINT16 *source, int bJustGetColor );
 
 #define TRANSPARENT_SHADOWS
 
@@ -39,6 +41,9 @@ extern int sys16_sprite_aburner( struct sys16_sprite_attributes *sprite, const U
 #define ShadowColorsMultiplier 1
 #endif
 
+extern int sys16_sprite_draw;
+extern int sys16_wwfix;
+extern int sys16_soundbanktype;
 extern int sys16_sh_shadowpal;
 extern int sys16_MaxShadowColors;
 
@@ -75,6 +80,8 @@ extern WRITE16_HANDLER( SYS16_MWA16_WORKINGRAM2_SHARE );
 
 extern void (*sys16_custom_irq)(void);
 extern MACHINE_INIT( sys16_onetime );
+extern WRITE_HANDLER( UPD7759_bank_w );
+extern struct upd7759_interface sys16b_upd7759_interface;
 
 #define SYS16_MRA16_SPRITERAM		MRA16_RAM
 #define SYS16_MWA16_SPRITERAM		MWA16_RAM
@@ -108,7 +115,7 @@ extern READ16_HANDLER( SYS16_CPU2_RESET_HACK );
 
 extern struct GfxDecodeInfo sys16_gfxdecodeinfo[];
 
-// encryption decoding
+/* encryption decoding */
 void endurob2_decode_data(data16_t *dest,data16_t *source,int size);
 void endurob2_decode_data2(data16_t *dest,data16_t *source,int size);
 void enduror_decode_data(data16_t *dest,data16_t *source,int size);
@@ -214,33 +221,61 @@ void aurail_decode_opcode2(data16_t *dest,data16_t *source,int size);
 	PORT_DIPSETTING(    0xa0, DEF_STR( 1C_6C ) ) \
 	PORT_DIPSETTING(    0x00, "Free Play (if Coin A too) or 1/1" )
 
+#define SYS16_UNUSED PORT_START \
+	PORT_BIT( 0xff, IP_ACTIVE_LOW, IPT_UNUSED )
 
 /* video hardware */
-extern READ16_HANDLER( sys16_tileram_r );
-extern WRITE16_HANDLER( sys16_tileram_w );
-extern READ16_HANDLER( sys16_textram_r );
-extern WRITE16_HANDLER( sys16_textram_w );
-extern WRITE16_HANDLER( sys16_paletteram_w );
+READ16_HANDLER( sys16_tileram_r );
+WRITE16_HANDLER( sys16_tileram_w );
+READ16_HANDLER( sys16_textram_r );
+WRITE16_HANDLER( sys16_textram_w );
+WRITE16_HANDLER( sys16_paletteram_w );
+
+
+/* from vidhrdw/segas16b.c */
+VIDEO_START( system16b );
+VIDEO_START( timscanr );
+VIDEO_UPDATE( system16b );
+
+/* from vidhrdw/segaorun.c */
+VIDEO_START( outrun );
+VIDEO_START( shangon );
+VIDEO_UPDATE( outrun );
+VIDEO_UPDATE( shangon );
+
+/* from vidhrdw/segas18.c */
+VIDEO_UPDATE( system18_new );
+VIDEO_START( system18_new );
 
 /* "normal" video hardware */
-extern VIDEO_START( system16 );
-extern VIDEO_UPDATE( system16 );
+VIDEO_START( system16 );
+VIDEO_UPDATE( system16 );
 
 /* hang-on video hardware */
-extern VIDEO_START( hangon );
-extern VIDEO_UPDATE( hangon );
+VIDEO_START( hangon );
+VIDEO_UPDATE( hangon );
 
 /* outrun video hardware */
-extern VIDEO_START( outrun );
-extern VIDEO_UPDATE( outrun );
+VIDEO_START( outrun_old );
+VIDEO_UPDATE( outrun_old );
 
 /* aburner video hardware */
-extern VIDEO_START( aburner );
-extern VIDEO_UPDATE( aburner );
+VIDEO_START( aburner );
+VIDEO_UPDATE( aburner );
 
 /* system18 video hardware */
-extern VIDEO_START( system18 );
-extern VIDEO_UPDATE( system18 );
+VIDEO_START( system18 );
+VIDEO_UPDATE( system18 );
+void system18_set_grayscale(int enable);
+void system18_set_vdp_enable(int enable);
+void system18_set_vdp_mixing(int mixing);
+
+/* vidhrdw/segac2.c */
+void update_system18_vdp( struct mame_bitmap *bitmap, const struct rectangle *cliprect );
+void start_system18_vdp(void);
+READ16_HANDLER( segac2_vdp_r );
+WRITE16_HANDLER( segac2_vdp_w );
+
 
 /* video driver constants (vary with game) */
 extern int sys16_gr_bitmap_width;
@@ -314,8 +349,8 @@ extern struct YM2203interface sys16_3xym2203_interface;
 extern struct DACinterface datsu_dac_interface;
 extern struct DACinterface sys16_7751_dac_interface;
 
-extern struct UPD7759_interface sys16_upd7759_interface;
-extern struct UPD7759_interface aliensyn_upd7759_interface;
+extern struct upd7759_interface sys16_upd7759_interface;
+extern struct upd7759_interface aliensyn_upd7759_interface;
 
 extern struct YM2413interface sys16_ym2413_interface;
 
@@ -323,4 +358,3 @@ extern struct RF5C68interface sys18_rf5c68_interface;
 extern struct YM2612interface sys18_ym3438_interface;
 
 extern int sys18_sound_info[4*2];
-

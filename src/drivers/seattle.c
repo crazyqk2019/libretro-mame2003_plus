@@ -39,6 +39,8 @@
 #include "machine/idectrl.h"
 #include "machine/midwayic.h"
 #include "vidhrdw/voodoo.h"
+#include "bootstrap.h"
+#include "inptport.h"
 
 
 #define TIMER_CLOCK			TIME_IN_HZ(50000000)
@@ -76,6 +78,8 @@ static data32_t *generic_speedup2;
 
 static void timer_callback(int param);
 
+static data32_t cmos_write_enabled;
+
 
 
 /*************************************
@@ -92,8 +96,8 @@ static MACHINE_INIT( seattle )
 
 	if (mame_find_cpu_index("dcs2") != -1)
 	{
-		dcs_reset_w(1);
 		dcs_reset_w(0);
+		dcs_reset_w(1);
 	}
 	else if (mame_find_cpu_index("cage") != -1)
 	{
@@ -217,7 +221,9 @@ static INTERRUPT_GEN( assert_vblank )
 static WRITE32_HANDLER( cmos_w )
 {
 	data32_t *cmos_base = (data32_t *)generic_nvram;
-	COMBINE_DATA(&cmos_base[offset]);
+	if (cmos_write_enabled)
+		COMBINE_DATA(&cmos_base[offset]);
+	cmos_write_enabled = 0;
 }
 
 
@@ -226,6 +232,19 @@ static READ32_HANDLER( cmos_r )
 	data32_t *cmos_base = (data32_t *)generic_nvram;
 	return cmos_base[offset];
 }
+
+
+static WRITE32_HANDLER( cmos_protect_w )
+{
+	cmos_write_enabled = 1;
+}
+
+
+static READ32_HANDLER( cmos_protect_r )
+{
+	return cmos_write_enabled;
+}
+
 
 
 
@@ -891,9 +910,9 @@ static VIDEO_UPDATE( carnevil )
 
 	/* now draw the crosshairs */
 	get_crosshair_xy(0, &beamx, &beamy);
-	draw_crosshair(bitmap, beamx, beamy, cliprect);
+	draw_crosshair(1, bitmap, beamx, beamy, cliprect);
 	get_crosshair_xy(1, &beamx, &beamy);
-	draw_crosshair(bitmap, beamx, beamy, cliprect);
+	draw_crosshair(2, bitmap, beamx, beamy, cliprect);
 }
 
 
@@ -999,6 +1018,7 @@ static MEMORY_READ32_START( seattle_readmem )
 	{ 0xac000000, 0xac000fff, galileo_r },
 	{ 0xb6000000, 0xb600003f, midway_ioasic_r },
 	{ 0xb6100000, 0xb611ffff, cmos_r },
+	{ 0xb7000000, 0xb7000003, cmos_protect_r },
 	{ 0xb7300000, 0xb7300003, MRA32_RAM },
 	{ 0xb7400000, 0xb7400003, MRA32_RAM },
 	{ 0xb7500000, 0xb7500003, vblank_signalled_r },
@@ -1026,6 +1046,7 @@ static MEMORY_WRITE32_START( seattle_writemem )
 	{ 0xb3000000, 0xb3000003, asic_fifo_w },
 	{ 0xb6000000, 0xb600003f, midway_ioasic_w },
 	{ 0xb6100000, 0xb611ffff, cmos_w, (data32_t **)&generic_nvram, &generic_nvram_size },
+	{ 0xb7000000, 0xb7000003, cmos_protect_w },
 	{ 0xb7100000, 0xb7100003, seattle_watchdog_w },
 	{ 0xb7300000, 0xb7300003, vblank_enable_w, &vblank_enable },
 	{ 0xb7400000, 0xb7400003, vblank_config_w, &vblank_config },
@@ -2214,7 +2235,7 @@ static DRIVER_INIT( biofreak )
 static DRIVER_INIT( blitz )
 {
 	dcs2_init(0x39c2);
-	init_common(MIDWAY_IOASIC_BLITZ99, 528/* or 444 */, 80);
+	init_common(MIDWAY_IOASIC_BLITZ99, 444/* or 528 */, 80);
 
 	/* for some reason, the code in the ROM appears buggy; this is a small patch to fix it */
 	rombase[0x934/4] += 4;
@@ -2228,7 +2249,7 @@ static DRIVER_INIT( blitz )
 static DRIVER_INIT( blitz99 )
 {
 	dcs2_init(0x0afb);
-	init_common(MIDWAY_IOASIC_BLITZ99, 520/* or 481 or 484 */, 80);
+	init_common(MIDWAY_IOASIC_BLITZ99, 481/* or 484 or 520 */, 80);
 
 	/* speedups */
 	install_mem_write32_handler(0, 0x802502bc, 0x802502bf, generic_speedup_w);
@@ -2239,7 +2260,7 @@ static DRIVER_INIT( blitz99 )
 static DRIVER_INIT( blitz2k )
 {
 	dcs2_init(0x0b5d);
-	init_common(MIDWAY_IOASIC_BLITZ99, 498/* or 494 */, 80);
+	init_common(MIDWAY_IOASIC_BLITZ99, 494/* or 498 */, 80);
 
 	/* speedups */
 	install_mem_write32_handler(0, 0x8024e8d8, 0x8024e8db, generic_speedup_w);
@@ -2250,7 +2271,7 @@ static DRIVER_INIT( blitz2k )
 static DRIVER_INIT( carnevil )
 {
 	dcs2_init(0x0af7);
-	init_common(MIDWAY_IOASIC_CARNEVIL, 528/* or 469 or 486 */, 80);
+	init_common(MIDWAY_IOASIC_CARNEVIL, 469/* or 486 or 528 */, 80);
 
 	/* set up the gun */
 	install_mem_read32_handler(0, 0xb6800000, 0xb680001f, carnevil_gun_r);
@@ -2280,4 +2301,4 @@ GAME ( 1997, biofreak, 0,        seattle150, biofreak, biofreak, ROT0, "Midway G
 GAME ( 1997, blitz,    0,        seattle150, blitz,    blitz,    ROT0, "Midway Games", "NFL Blitz" )
 GAME ( 1998, blitz99,  0,        seattle150, blitz99,  blitz99,  ROT0, "Midway Games", "NFL Blitz '99" )
 GAME ( 1999, blitz2k,  0,        seattle150, blitz99,  blitz2k,  ROT0, "Midway Games", "NFL Blitz 2000" )
-GAME ( 1998, carnevil, 0,        carnevil,   carnevil, carnevil, ROT0, "Midway Games", "CarnEvil" )
+GAMEC( 1998, carnevil, 0,        carnevil,   carnevil, carnevil, ROT0, "Midway Games", "CarnEvil", &carnevil_ctrl, &carnevil_bootstrap )

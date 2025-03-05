@@ -910,7 +910,7 @@ static MACHINE_DRIVER_START( squash )
 	MDRV_CPU_MEMORY(squash_readmem,squash_writemem)
 	MDRV_CPU_VBLANK_INT(irq6_line_hold,1)
 
-	MDRV_FRAMES_PER_SECOND(60)
+  MDRV_FRAMES_PER_SECOND(57.42)
 	MDRV_VBLANK_DURATION(DEFAULT_REAL_60HZ_VBLANK_DURATION)
 	MDRV_INTERLEAVE(10)
 
@@ -935,7 +935,7 @@ static MACHINE_DRIVER_START( thoop )
 	MDRV_CPU_MEMORY(thoop_readmem,thoop_writemem)
 	MDRV_CPU_VBLANK_INT(irq6_line_hold,1)
 
-	MDRV_FRAMES_PER_SECOND(60)
+	MDRV_FRAMES_PER_SECOND(57.42)
 	MDRV_VBLANK_DURATION(DEFAULT_REAL_60HZ_VBLANK_DURATION)
 	MDRV_INTERLEAVE(10)
 
@@ -947,7 +947,7 @@ static MACHINE_DRIVER_START( thoop )
 	MDRV_PALETTE_LENGTH(1024)
 
 	MDRV_VIDEO_START(maniacsq)
-	MDRV_VIDEO_UPDATE(maniacsq)
+	MDRV_VIDEO_UPDATE(bigkarnk)
 
 	/* sound hardware */
 	MDRV_SOUND_ADD(OKIM6295, bigkarnk_okim6295_interface)
@@ -1068,5 +1068,3 @@ GAME(1995, biomtoy,  0,        maniacsq, biomtoy,  0, ROT0, "Gaelco", "Biomechan
 GAME(1996, maniacsp, maniacsq, maniacsq, maniacsq, 0, ROT0, "Gaelco", "Maniac Square (prototype)" )
 GAME(1992, squash,   0,	       squash,   squash,   0, ROT0, "Gaelco", "Squash" )
 GAME(1992, thoop,    0,	       thoop,    thoop,    0, ROT0, "Gaelco", "Thunder Hoop" )
-
-

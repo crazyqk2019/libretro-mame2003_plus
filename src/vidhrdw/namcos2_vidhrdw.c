@@ -445,7 +445,7 @@ DrawSpritesDefault( struct mame_bitmap *bitmap, const struct rectangle *cliprect
 			spr_region=(offset2&0x2000)?1:0;
 
 			ypos=(0x1ff-(offset0&0x01ff))-0x50+0x02;
-			xpos=(offset4&0x03ff)-0x50+0x07;
+			xpos=(offset4&0x07ff)-0x50+0x07;
 
 			flipy=offset2&0x8000;
 			flipx=offset2&0x4000;
@@ -630,11 +630,11 @@ DrawCrossshair( struct mame_bitmap *bitmap, const struct rectangle *cliprect )
 
 	beamx = readinputport(2+x1port)*bitmap->width/256;
 	beamy = readinputport(2+y1port)*bitmap->height/256;
-	draw_crosshair( bitmap, beamx, beamy, cliprect );
+	draw_crosshair( 1, bitmap, beamx, beamy, cliprect );
 
 	beamx = readinputport(2+x2port)*bitmap->width/256;
 	beamy = readinputport(2+y2port)*bitmap->height/256;
-	draw_crosshair( bitmap, beamx, beamy, cliprect );
+	draw_crosshair( 2, bitmap, beamx, beamy, cliprect );
 }
 
 /**************************************************************************/

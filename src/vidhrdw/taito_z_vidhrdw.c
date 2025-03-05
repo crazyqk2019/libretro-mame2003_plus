@@ -1034,7 +1034,7 @@ VIDEO_UPDATE( spacegun )
 		--screenx;
 		screeny += 15;
 
-		draw_crosshair(bitmap,screenx,screeny,cliprect);
+		draw_crosshair(1, bitmap,screenx,screeny,cliprect);
 
 		/* calculate p2 screen co-ords by matching routine at $196EA */
 		rawx = taitoz_sharedram[0xd98/2];
@@ -1081,7 +1081,7 @@ VIDEO_UPDATE( spacegun )
 		--screenx;
 		screeny += 15;
 
-		draw_crosshair(bitmap,screenx,screeny,cliprect);
+		draw_crosshair(2, bitmap,screenx,screeny,cliprect);
 	}
 }
 
@@ -1119,4 +1119,33 @@ VIDEO_UPDATE( dblaxle )
 	TC0480SCP_tilemap_draw(bitmap,cliprect,layer[4],0,0);	/* Text layer */
 }
 
+VIDEO_UPDATE( racingb )
+{
+	UINT8 layer[5];
+	UINT16 priority;
 
+	TC0480SCP_tilemap_update();
+
+	priority = TC0480SCP_get_bg_priority();
+
+	layer[0] = (priority & 0xf000) >> 12;	/* tells us which bg layer is bottom */
+	layer[1] = (priority & 0x0f00) >>  8;
+	layer[2] = (priority & 0x00f0) >>  4;
+	layer[3] = (priority & 0x000f) >>  0;	/* tells us which is top */
+	layer[4] = 4;   /* text layer always over bg layers */
+
+	fillbitmap(priority_bitmap,0,cliprect);
+
+	/* Ensure screen blanked - this shouldn't be necessary! */
+	fillbitmap(bitmap, Machine->pens[0], cliprect);
+
+	TC0480SCP_tilemap_draw(bitmap,cliprect,layer[0],TILEMAP_IGNORE_TRANSPARENCY,0);
+	TC0480SCP_tilemap_draw(bitmap,cliprect,layer[1],0,0);
+	TC0480SCP_tilemap_draw(bitmap,cliprect,layer[2],0,2);
+	TC0480SCP_tilemap_draw(bitmap,cliprect,layer[3],0,2);
+
+	TC0150ROD_draw(bitmap,cliprect,-1,0xc0,0,0,2);
+	sci_draw_sprites_16x8(bitmap, cliprect, 7);
+
+	TC0480SCP_tilemap_draw(bitmap,cliprect,layer[4],0,4);
+}

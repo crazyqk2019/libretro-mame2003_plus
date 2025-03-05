@@ -17,6 +17,7 @@ Supported games:
 	tekipaki	TP-020		Toaplan		Teki Paki
 	ghox		TP-021		Toaplan		Ghox
 	dogyuun		TP-022		Toaplan		Dogyuun
+	dogyuunto	TP-022		Toaplan		Dogyuun (8/25/1992 location test)
 	kbash		TP-023		Toaplan		Knuckle Bash
 	truxton2	TP-024		Toaplan		Truxton 2 / Tatsujin 2
 	pipibibs	TP-025		Toaplan		Pipi & Bibis
@@ -179,20 +180,21 @@ Battle Bakraid			L7A0498 GP9001 TOA PLAN 9335
 
 Game status:
 
-Teki Paki                      Working, but no sound. Missing sound MCU dump
-Ghox                           Working, but no sound. Missing sound MCU dump
+Teki Paki                      Working.
+Ghox                           Working.
 Dogyuun                        Working, but no sound. MCU type unknown - its a Z?80 of some sort.
-Knuckle Bash                   Working, but no sound. MCU dump exists, its a Z?80 of some sort.
+Dogyuun (8/25/1992 LT)         Working, Z80 for sound.
+Knuckle Bash                   Working, partial sound. MCU dump exists, its a Z?80 of some sort.
 Truxton 2                      Working.
 Pipi & Bibis                   Working.
-Whoopee                        Working. Missing sound MCU dump. Using bootleg sound CPU dump for now
+Whoopee                        Working.
 Pipi & Bibis (Ryouta Kikaku)   Working.
 FixEight                       Not working properly. Missing background GFX (controlled by MCU). MCU type unknown - its a Z?80 of some sort.
 FixEight bootleg               Working. One unknown ROM (same as pipibibi one). Region hardcoded to Korea (@ $4d8)
 Grind Stormer                  Working, but no sound. MCU type unknown - its a Z?80 of some sort.
 VFive                          Working, but no sound. MCU type unknown - its a Z?80 of some sort.
-Batsugun                       Working, but no sound and wrong GFX priorities. MCU type unknown - its a Z?80 of some sort.
-Batsugun Sp'                   Working, but no sound and wrong GFX priorities. MCU type unknown - its a Z?80 of some sort.
+Batsugun                       Working, partial sound MCU type unknown - its a Z?80 of some sort.
+Batsugun Sp'                   Working, partial sound MCU type unknown - its a Z?80 of some sort.
 Snow Bros. 2                   Working.
 Mahou Daisakusen               Working.
 Shippu Mahou Daisakusen        Working.
@@ -210,9 +212,6 @@ Notes:
 To Do / Unknowns:
 	- Whoopee/Teki Paki sometimes tests bit 5 of the territory port
 		just after testing for vblank. Why ?
-	- Whoppee is currently using the sound CPU ROM (Z80) from a differnt
-		(pirate ?) version of Pipi and Bibis (Ryouta Kikaku copyright).
-		It really has a HD647180 CPU, and its internal ROM needs to be dumped.
 	- Fix top character text layer (implement the line position table).
 	- Priority problem on 2nd player side of selection screen in FixEight (both original and bootleg)
 	- Fixeight bootleg text in sound check mode does not display properly
@@ -233,6 +232,7 @@ To Do / Unknowns:
 #include "vidhrdw/generic.h"
 #include "cpu/m68000/m68000.h"
 #include "cpu/z80/z80.h"
+#include "cpu/z180/z180.h"
 #include "machine/eeprom.h"
 
 
@@ -334,25 +334,11 @@ WRITE16_HANDLER( pipibibi_scroll_w );
 /********** Sound Stuff ***********************/
 void batsugun_okisnd_w(int data);
 void kbash_okisnd_w(int data);
+data8_t m_cmdavailable;
 
-int fadeout_ready = 0;
-int fadeout_stop = 0;
-int counter1 = 0;
-float sample_vol1 = 0;
+READ_HANDLER(tekipaki_soundlatch_r);
+READ_HANDLER(tekipaki_cmdavailable_r);
 
-int playing1 = 0xff;
-int playing2 = 0xff;
-int playing3 = 0x00;
-int playing4 = 0x00;
-int playing5 = 0x00;
-int play_bat1 = 0x00;
-
-int thunder1 = 0;
-int thunder2 = 0;
-int thunder3 = 0;
-int thunder4 = 0;
-int thunder5 = 0;
-int thunder6 = 0;
 
 /***************************************************************************
   Initialisation handlers
@@ -366,6 +352,7 @@ static MACHINE_INIT( toaplan2 )		/* machine_init_toaplan2(); */
 
 static MACHINE_INIT( ghox )
 {
+	toaplan2_shared_ram16 = auto_malloc(0xFFF);
 	old_p1_paddle_h = 0;
 	old_p1_paddle_v = 0;
 	old_p2_paddle_h = 0;
@@ -379,6 +366,12 @@ static MACHINE_INIT( batrider )
 	current_bank = 2;
 
 	machine_init_toaplan2();
+}
+
+static MACHINE_INIT( dogyuun )
+{
+	toaplan2_shared_ram16 = auto_malloc(0xFFF);
+	mcu_data = 0xffaa;
 }
 
 static DRIVER_INIT( T2_Z80 )		/* init_t2_Z80(); */
@@ -523,46 +516,34 @@ static DRIVER_INIT( bbakrada )
   Toaplan games
 ***************************************************************************/
 
-#define T2_VIDEO_CONTROL 0		/* Need to adjust the sprite lag.. */
-
 READ16_HANDLER( toaplan2_inputport_0_word_r )
 {
-#if T2_VIDEO_CONTROL
-	return cpu_getvblank();
-#else
+/*	int retval = (current_scanline>255) ? 1 : 0; */
 	int retval = vblank_irq;
 	return retval;
-#endif
 }
 
 static void toaplan2_irq(int irq_line)
 {
-#if T2_VIDEO_CONTROL
-	int vpos = cpu_getscanline();
-	if (vpos == 240) cpu_set_irq_line(0, irq_line, HOLD_LINE);
-	vblank_irq = 0; /*Remove*/
-/*	log_cb(RETRO_LOG_DEBUG, LOGPRE "IRQ: scanline=%04x iloop=%04x beampos=%04x\n",vpos,cpu_getiloops(),cpu_gethorzbeampos());*/
-#else
 	if (cpu_getiloops() == 0) current_scanline = 255;
 
-	if (current_scanline == 245)
+	if(current_scanline == 245)
 	{
 		cpu_set_irq_line(0, irq_line, HOLD_LINE);
 		vblank_irq = 1;
 	}
 
 	current_scanline++;
-	if (current_scanline > 261)
+	if(current_scanline > 261)
 	{
 		current_scanline = 0;
 		vblank_irq = 0;
 	}
-#endif
 }
 
-static INTERRUPT_GEN( toaplan2_vblank_irq2 ) { toaplan2_irq(2); }
-static INTERRUPT_GEN( toaplan2_vblank_irq3 ) { toaplan2_irq(3); }
-static INTERRUPT_GEN( toaplan2_vblank_irq4 ) { toaplan2_irq(4); }
+static INTERRUPT_GEN( toaplan2_vblank_irq2 ) {toaplan2_irq(2);}
+static INTERRUPT_GEN( toaplan2_vblank_irq3 ) {toaplan2_irq(3);}
+static INTERRUPT_GEN( toaplan2_vblank_irq4 ) {toaplan2_irq(4);}
 
 static READ16_HANDLER( video_count_r )
 {
@@ -572,47 +553,28 @@ static READ16_HANDLER( video_count_r )
 	/* +---------+---------+--------+---------------------------+ */
 	/*************** Control Signals are active low ***************/
 
-#if T2_VIDEO_CONTROL
-	int hpos = cpu_gethorzbeampos();
-	int vpos = cpu_getscanline();
-	video_status = 0xff00;						/* Set signals inactive */
+/*	static int current_beampos = 0; */
 
-	if ((hpos > 325) && (hpos < 380))
-		video_status &= ~0x8000;
-	if ((vpos >= 242) && (vpos <= 245))
-		video_status &= ~0x4000;
-	if (cpu_getvblank())
-		video_status &= ~0x0100;
-	if (vpos < 256)
-		video_status |= (vpos & 0xff);
-	else
-		video_status |= 0xff;
-
-	current_scanline = prev_scanline = vpos; /*Remove*/
-	log_cb(RETRO_LOG_DEBUG, LOGPRE "VC: scanline=%04x iloop=%04x beampos=%04x VBL=%04x\n",vpos,cpu_getiloops(),hpos,cpu_getvblank());
-#else
-/*	log_cb(RETRO_LOG_DEBUG, LOGPRE "Was VS=%04x  Vbl=%02x  VS=%04x - ",video_status,vblank_irq,prev_scanline );*/
+/*	logerror("Was VC=%04x  Vbl=%02x  VS=%04x  HS=%04x - ",video_status,vblank_irq,prev_scanline,prev_beampos ); */
 
 	video_status = 0xff00;						/* Set signals inactive */
-	if ((current_scanline & 0x100) == 0) {
-		video_status |= (current_scanline & 0xff);	/* Scanline */
-	}
-	else {
-		video_status |= 0xff;
-	}
+	video_status |= (current_scanline & 0xff);	/* Scanline */
+
 	if (vblank_irq) {
 		video_status &= ~0x0100;
 	}
 	if (prev_scanline != current_scanline) {
-		video_status &= ~0x8000;				/* Activate H-Sync Clk */
+		video_status &= ~0x8000;				/* Activate V-Sync Clk */
 	}
-	if ((current_scanline >= 247) && (current_scanline <= 250)) {
-		video_status &= ~0x4000;				/* Activate V-Sync Clk */
+/*	
+	if (current_beampos) {
+		video_status &= ~0x4000;
 	}
+	current_beampos = ~current_beampos;
+*/
 	prev_scanline = current_scanline;
 
-/*	log_cb(RETRO_LOG_DEBUG, LOGPRE "Now VC=%04x  Vbl=%02x  VS=%04x  HS=%04x\n",video_status,vblank_irq,cpu_getscanline(),cpu_gethorzbeampos() );*/
-#endif
+/*	logerror("Now VC=%04x  Vbl=%02x  VS=%04x  HS=%04x\n",video_status,vblank_irq,cpu_getscanline(),cpu_gethorzbeampos() ); */
 
 	return video_status;
 }
@@ -673,94 +635,20 @@ static WRITE16_HANDLER( toaplan2_shared_w )
 
 static WRITE16_HANDLER( toaplan2_hd647180_cpu_w )
 {
-	/* Command sent to secondary CPU. Support for HD647180 will be
-	   required when a ROM dump becomes available for this hardware */
-
 	if (ACCESSING_LSB)
-	{
-		if (toaplan2_sub_cpu == CPU_2_Z80)			/* Whoopee */
-		{
-			toaplan2_shared_ram[0] = data & 0xff;
-		}
-		else										/* Teki Paki */
-		{
-			mcu_data = data & 0xff;
-			log_cb(RETRO_LOG_DEBUG, LOGPRE "PC:%08x Writing command (%04x) to secondary CPU shared port\n",activecpu_get_previouspc(),mcu_data);
-		}
-	}
-}
-
-static WRITE16_HANDLER( tekipaki_hd647180_w )
-{
-	if (data == 0xfe)
-	{
-		sample_stop(0);sample_stop(1);sample_stop(2);sample_stop(3);
-		sample_stop(4);sample_stop(5);sample_stop(6);sample_stop(7);
-	}
-	
-	if (data >= 0x01 && data <= 0x03)
-		sample_start (0, data, 1);
-	
-	if (data >= 0x04 && data <= 0x05)
-		sample_start (0, data, 0);
-	
-	if (data == 0x06)
-		sample_start (1, data ,0);
-	
-	if (data == 0x07)
-		sample_start (1, data ,0);
-	
-	if (data >= 0x08 && data <= 0x09)
-		sample_start (2, data, 0);
-	
-	if (data >= 0x0a && data <= 0x0d)
-		sample_start (3, data, 0);
-	
-	if (data >= 0x0e && data <= 0x12)
-		sample_start (4, data, 0);
-	
-	if (data >= 0x13 && data <= 0x14)
-		sample_start (5, data, 0);
-	
-	if (data == 0x15)
-		sample_start (6, data, 0);
-	
-	if (ACCESSING_LSB)
-	{
+	{	
 		mcu_data = data & 0xff;
-		/* logerror("PC:%08x Writing command (%04x) to secondary CPU shared port\n",activecpu_get_previouspc(),mcu_data); */
+        m_cmdavailable = 1;
 	}
 }
-
-static const char *tekipaki_sample_names[] =
-{
-	"*tekipaki",
-	"dm.wav","01.wav","02.wav","03.wav","04.wav","05.wav","06.wav","07.wav",
-	"08.wav","09.wav","0a.wav","0b.wav","0c.wav","0d.wav","0e.wav","0f.wav",
-	"10.wav","11.wav","12.wav","13.wav","14.wav","15.wav",0
-};
-
-struct Samplesinterface tekipaki_samples_interface =
-{
-	8,
-    75,
-    tekipaki_sample_names
-};
 
 static READ16_HANDLER( c2map_port_6_r )
 {
 	/* For Teki Paki hardware */
 	/* bit 4 high signifies secondary CPU is ready */
 	/* bit 5 is tested low before V-Blank bit ??? */
-	switch (toaplan2_sub_cpu)
-	{
-		case CPU_2_Z80:			mcu_data = toaplan2_shared_ram[0]; break; /* Whoopee */
-		case CPU_2_HD647180:	mcu_data = 0xff; break;					  /* Teki Paki */
-		default:				mcu_data = 0x00; break;
-	}
-	if (mcu_data == 0xff) mcu_data = 0x10;
-	else mcu_data = 0x00;
-	return ( mcu_data | input_port_6_r(0) );
+    return (((m_cmdavailable) ? 0x00 : 0x10) | (input_port_6_r(0) & 0x0f)); /* dink */
+
 }
 
 static READ16_HANDLER( pipibibi_z80_status_r )
@@ -787,7 +675,7 @@ static READ16_HANDLER( ghox_p1_h_analog_r )
 	return value;
 }
 
-static READ16_HANDLER( ghox_p1_v_analog_r )
+static READ_HANDLER( ghox_p1_v_analog_r )
 {
 	INT8 new_value;
 
@@ -813,7 +701,7 @@ static READ16_HANDLER( ghox_p2_h_analog_r )
 	return value;
 }
 
-static READ16_HANDLER( ghox_p2_v_analog_r )
+static READ_HANDLER( ghox_p2_v_analog_r )
 {
 	INT8 new_value;
 
@@ -828,141 +716,6 @@ static READ16_HANDLER( ghox_p2_v_analog_r )
 	return (input_port_2_r(0) | 1);
 }
 
-static READ16_HANDLER( ghox_mcu_r )
-{
-	return 0xff;
-}
-
-static WRITE16_HANDLER( ghox_mcu_w )
-{
-	if (data == 0xfe)
-		sample_stop (0);
-
-	if (data == 0x42 || data == 0x44 || data == 0x45 || data == 0x47 || data == 0x48 || data == 0x4c || data == 0x4d || data == 0x4e)
-		sample_start (0, data , 1);
-
-	if (data == 0xd0)
-		sample_start (0, 0, 1);
-
-	if (data == 0x49)
-		sample_start (0, data , 0);
-
-	if (data >= 0x02 && data <= 0x0f)
-		sample_start (1, data , 0);
-
-	if (data >= 0x10 && data <= 0x17)
-		sample_start (2, data , 0);
-
-	if (data >= 0x18 && data <= 0x1f)
-		sample_start (3, data , 0);
-
-	if (data >= 0x20 && data <= 0x27)
-		sample_start (4, data , 0);
-
-	if (data >= 0x28 && data <= 0x2f)
-		sample_start (5, data , 0);
-
-	if (data >= 0x30 && data <= 0x38)
-		sample_start (6, data , 0);
-
-	if (data == 0x39)
-		sample_start (8, data , 0);
-
-	if (data >= 0x3a && data <= 0x3f)
-		sample_start (7, data , 0);
-
-	if (data == 0x01)
-		sample_start (8, data , 0);
-
-	if (data == 0x4b)
-		sample_start (0, 0x4f , 0);
-
-	if (ACCESSING_LSB)
-	{
-		mcu_data = data;
-		if ((data >= 0xd0) && (data < 0xe0))
-		{
-			offset = ((data & 0x0f) * 2) + (0x38 / 2);
-			toaplan2_shared_ram16[offset  ] = 0x0005;	/* Return address for */
-			toaplan2_shared_ram16[offset-1] = 0x0056;	/*   RTS instruction */
-		}
-		else
-		{
-			log_cb(RETRO_LOG_DEBUG, LOGPRE "PC:%08x Writing %08x to HD647180 cpu shared ram status port\n",activecpu_get_previouspc(),mcu_data);
-		}
-		toaplan2_shared_ram16[0x56 / 2] = 0x004e;	/* Return a RTS instruction */
-		toaplan2_shared_ram16[0x58 / 2] = 0x0075;
-
-		if (data == 0xd3)
-		{
-		toaplan2_shared_ram16[0x56 / 2] = 0x003a;	/*	move.w  d1,d5*/
-		toaplan2_shared_ram16[0x58 / 2] = 0x0001;
-		toaplan2_shared_ram16[0x5a / 2] = 0x0008;	/*	bclr.b  #0,d5*/
-		toaplan2_shared_ram16[0x5c / 2] = 0x0085;
-		toaplan2_shared_ram16[0x5e / 2] = 0x0000;
-		toaplan2_shared_ram16[0x60 / 2] = 0x0000;
-		toaplan2_shared_ram16[0x62 / 2] = 0x00cb;	/*	muls.w  #3,d5*/
-		toaplan2_shared_ram16[0x64 / 2] = 0x00fc;
-		toaplan2_shared_ram16[0x66 / 2] = 0x0000;
-		toaplan2_shared_ram16[0x68 / 2] = 0x0003;
-		toaplan2_shared_ram16[0x6a / 2] = 0x0090;	/*	sub.w   d5,d0*/
-		toaplan2_shared_ram16[0x6c / 2] = 0x0045;
-		toaplan2_shared_ram16[0x6e / 2] = 0x00e5;	/*	lsl.b   #2,d1*/
-		toaplan2_shared_ram16[0x70 / 2] = 0x0009;
-		toaplan2_shared_ram16[0x72 / 2] = 0x004e;	/*	rts*/
-		toaplan2_shared_ram16[0x74 / 2] = 0x0075;
-		}
-	}
-}
-
-static const char *ghox_sample_names[] =
-{
-	"*ghox",
-	"d0.wav","01.wav","02.wav","dm.wav","04.wav","05.wav","06.wav","dm.wav",
-	"08.wav","09.wav","dm.wav","0b.wav","0c.wav","dm.wav","dm.wav","0f.wav",
-	"dm.wav","11.wav","12.wav","12.wav","14.wav","15.wav","16.wav","17.wav",
-	"18.wav","19.wav","1a.wav","1b.wav","1c.wav","1c.wav","1c.wav","1f.wav",
-	"20.wav","21.wav","22.wav","23.wav","24.wav","dm.wav","dm.wav","27.wav",
-	"dm.wav","dm.wav","2a.wav","2b.wav","dm.wav","2d.wav","2e.wav","2f.wav",
-	"dm.wav","dm.wav","dm.wav","33.wav","34.wav","35.wav","36.wav","37.wav",
-	"38.wav","39.wav","dm.wav","dm.wav","3c.wav","dm.wav","3e.wav","dm.wav",
-	"dm.wav","dm.wav","42.wav","43.wav","44.wav","45.wav","43.wav","47.wav",
-	"48.wav","49.wav","43.wav","dm.wav","4c.wav","4d.wav","4e.wav","d1.wav",0
-};
-
-struct Samplesinterface ghox_samples_interface =
-{
-	9,
-    75,
-    ghox_sample_names
-};
-
-static READ16_HANDLER( ghox_shared_ram_r )
-{
-	/* Ghox 68K reads data from MCU shared RAM and writes it to main RAM.
-	   It then subroutine jumps to main RAM and executes this code.
-	   Here, we're just returning a RTS instruction for now.
-	   See above ghox_mcu_w routine.
-
-	   Offset $56 and $58 are accessed from around PC:0F814
-
-	   Offset $38 and $36 are accessed from around PC:0DA7C
-	   Offset $3c and $3a are accessed from around PC:02E3C
-	   Offset $40 and $3E are accessed from around PC:103EE
-	   Offset $44 and $42 are accessed from around PC:0FB52
-	   Offset $48 and $46 are accessed from around PC:06776
-	*/
-
-	return toaplan2_shared_ram16[offset] & 0xff;
-}
-
-static WRITE16_HANDLER( ghox_shared_ram_w )
-{
-	if (ACCESSING_LSB)
-	{
-		toaplan2_shared_ram16[offset] = data & 0xff;
-	}
-}
 
 /****************************************************************************
   The Toaplan 2 hardware with V25+ secondary CPU controls the sound through
@@ -1122,6 +875,15 @@ static READ16_HANDLER( shared_ram_r )
 	return toaplan2_shared_ram16[offset] & 0xff;
 }
 
+static READ_HANDLER( shared_ram8_r )
+{
+/*	Other games using a Zx80 based secondary CPU, have shared memory between
+	the 68000 and the Zx80 CPU. The 68000 reads the status of the Zx80
+	via a location of the shared memory.
+*/
+	return toaplan2_shared_ram16[offset] & 0xff;
+}
+
 static WRITE16_HANDLER( shared_ram_w )
 {
 	if (ACCESSING_LSB)
@@ -1143,6 +905,11 @@ static WRITE16_HANDLER( shared_ram_w )
 		}
 		toaplan2_shared_ram16[offset] = data;
 	}
+}
+
+static WRITE_HANDLER( shared_ram8_w )
+{
+		toaplan2_shared_ram16[offset] = data;
 }
 
 static READ16_HANDLER( Zx80_status_port_r )
@@ -1590,7 +1357,7 @@ static MEMORY_WRITE16_START( tekipaki_writemem )
 	{ 0x140008, 0x140009, toaplan2_0_scroll_reg_select_w },
 	{ 0x14000c, 0x14000d, toaplan2_0_scroll_reg_data_w },
 	{ 0x180040, 0x180041, toaplan2_coin_word_w },	/* Coin count/lock */
-	{ 0x180070, 0x180071, tekipaki_hd647180_w },
+	{ 0x180070, 0x180071, toaplan2_hd647180_cpu_w }, /* MCU commands */
 MEMORY_END
 
 static MEMORY_READ16_START( ghox_readmem )
@@ -1601,15 +1368,7 @@ static MEMORY_READ16_START( ghox_readmem )
 	{ 0x100000, 0x100001, ghox_p1_h_analog_r },		/* Paddle 1 */
 	{ 0x140004, 0x140007, toaplan2_0_videoram16_r },
 	{ 0x14000c, 0x14000d, toaplan2_inputport_0_word_r },	/* VBlank */
-	{ 0x180000, 0x180001, ghox_mcu_r },				/* really part of shared RAM */
-	{ 0x180006, 0x180007, input_port_4_word_r },	/* Dip Switch A */
-	{ 0x180008, 0x180009, input_port_5_word_r },	/* Dip Switch B */
-	{ 0x180010, 0x180011, input_port_3_word_r },	/* Coin/System inputs */
-/*	{ 0x18000c, 0x18000d, input_port_1_word_r },	 // Player 1 controls (real) /*/
-/*	{ 0x18000e, 0x18000f, input_port_2_word_r },	 // Player 2 controls (real) /*/
-	{ 0x18000c, 0x18000d, ghox_p1_v_analog_r },		/* Player 1 controls */
-	{ 0x18000e, 0x18000f, ghox_p2_v_analog_r },		/* Player 2 controls */
-	{ 0x180500, 0x180fff, ghox_shared_ram_r },
+	{ 0x180000, 0x180fff, shared_ram_r },
 	{ 0x18100c, 0x18100d, input_port_6_word_r },	/* Territory Jumper block */
 MEMORY_END
 
@@ -1621,8 +1380,7 @@ static MEMORY_WRITE16_START( ghox_writemem )
 	{ 0x140004, 0x140007, toaplan2_0_videoram16_w },/* Tile/Sprite VideoRAM */
 	{ 0x140008, 0x140009, toaplan2_0_scroll_reg_select_w },
 	{ 0x14000c, 0x14000d, toaplan2_0_scroll_reg_data_w },
-	{ 0x180000, 0x180001, ghox_mcu_w },				/* really part of shared RAM */
-	{ 0x180500, 0x180fff, ghox_shared_ram_w, &toaplan2_shared_ram16 },
+	{ 0x180000, 0x180fff, shared_ram_w },
 	{ 0x181000, 0x181001, toaplan2_coin_word_w },
 MEMORY_END
 
@@ -1678,6 +1436,43 @@ static MEMORY_WRITE16_START( dogyuun_writemem )
 	{ 0x50000c, 0x50000d, toaplan2_1_scroll_reg_data_w },
 MEMORY_END
 
+static MEMORY_READ16_START( dogyuun_z80_readmem )
+    { 0x000000, 0x07ffff, MRA16_ROM },
+	{ 0x100000, 0x103fff, MRA16_RAM },
+	{ 0x218000, 0x218fff, shared_ram_r },
+	{ 0x21c020, 0x21c021, input_port_1_word_r },	/* Player 1 controls */
+	{ 0x21c024, 0x21c025, input_port_2_word_r },	/* Player 2 controls */
+	{ 0x21c028, 0x21c029, input_port_3_word_r },	/* Coin/System inputs */
+	{ 0x21c02c, 0x21c02d, input_port_4_word_r },	/* Dip Switch A */
+	{ 0x21c030, 0x21c031, input_port_5_word_r },	/* Dip Switch B */
+	{ 0x21f008, 0x21f009, input_port_6_word_r },	/* Territory Jumper block */ /* no change over the V25 set assumed to be the same */
+	/***** The following in 0x30000x are for video controller 1 ******/
+	{ 0x300004, 0x300007, toaplan2_0_videoram16_r },/* tile layers */
+	{ 0x30000c, 0x30000d, toaplan2_inputport_0_word_r },	/* VBlank */
+	{ 0x400000, 0x400fff, paletteram16_word_r },
+	/***** The following in 0x50000x are for video controller 2 ******/
+	{ 0x500004, 0x500007, toaplan2_1_videoram16_r },/* tile layers 2 */
+	{ 0x700000, 0x700001, video_count_r },			/* test bit 8 */
+MEMORY_END
+
+static MEMORY_WRITE16_START( dogyuun_z80_writemem )
+    { 0x000000, 0x07ffff, MWA16_ROM },
+	{ 0x100000, 0x103fff, MWA16_RAM },
+	{ 0x21c01d, 0x21c01d, toaplan2_coin_word_w },
+	{ 0x218000, 0x218fff, shared_ram_w },
+	/***** The following in 0x30000x are for video controller 1 ******/
+	{ 0x300000, 0x300001, toaplan2_0_voffs_w },	/* VideoRAM selector/offset */
+	{ 0x300004, 0x300007, toaplan2_0_videoram16_w },/* Tile/Sprite VideoRAM */
+	{ 0x300008, 0x300009, toaplan2_0_scroll_reg_select_w },
+	{ 0x30000c, 0x30000d, toaplan2_0_scroll_reg_data_w },
+	{ 0x400000, 0x400fff, paletteram16_xBBBBBGGGGGRRRRR_word_w, &paletteram16 },
+	/***** The following in 0x50000x are for video controller 2 ******/
+	{ 0x500000, 0x500001, toaplan2_1_voffs_w },	/* VideoRAM selector/offset */
+	{ 0x500004, 0x500007, toaplan2_1_videoram16_w },/* Tile/Sprite VideoRAM */
+	{ 0x500008, 0x500009, toaplan2_1_scroll_reg_select_w },
+	{ 0x50000c, 0x50000d, toaplan2_1_scroll_reg_data_w },
+MEMORY_END
+
 static MEMORY_READ16_START( kbash_readmem )
 	{ 0x000000, 0x07ffff, MRA16_ROM },
 	{ 0x100000, 0x103fff, MRA16_RAM },
@@ -1698,7 +1493,7 @@ static MEMORY_WRITE16_START( kbash_writemem )
 	{ 0x000000, 0x07ffff, MWA16_ROM },
 	{ 0x100000, 0x103fff, MWA16_RAM },
 	{ 0x200000, 0x200003, kbash_sub_cpu_w },		/* sound number to play */
-/*	{ 0x200002, 0x200003, kbash_sub_cpu_w2 },		 // ??? /*/
+/*	{ 0x200002, 0x200003, kbash_sub_cpu_w2 },*/		 /* ??? */ 
 	{ 0x20801c, 0x20801d, toaplan2_coin_word_w },
 	{ 0x300000, 0x300001, toaplan2_0_voffs_w },
 	{ 0x300004, 0x300007, toaplan2_0_videoram16_w },
@@ -1835,7 +1630,7 @@ static MEMORY_WRITE16_START( pipibibi_writemem )
 	{ 0x083800, 0x087fff, MWA16_RAM },				/* SpriteRAM (unused) */
 	{ 0x0c0000, 0x0c0fff, paletteram16_xBBBBBGGGGGRRRRR_word_w, &paletteram16 },
 	{ 0x120000, 0x120fff, MWA16_RAM },				/* Copy of SpriteRAM ? */
-/*	{ 0x13f000, 0x13f001, MWA16_NOP },				 // ??? /*/
+/*	{ 0x13f000, 0x13f001, MWA16_NOP },*/				 /* ??? */
 	{ 0x180000, 0x182fff, pipibibi_videoram16_w },	/* TileRAM */
 	{ 0x188000, 0x18800f, pipibibi_scroll_w },
 	{ 0x190010, 0x190011, pipibibi_z80_task_w },	/* Z80 task to perform */
@@ -1856,11 +1651,11 @@ static MEMORY_READ16_START( fixeight_readmem )
 #else
 	{ 0x28e000, 0x28efff, shared_ram_r },
 	{ 0x28f000, 0x28f001, Zx80_status_port_r },		/* Zx80 status port */
-/*	{ 0x28f002, 0x28f003, MRA16_RAM },				 // part of shared ram /*/
-/*	{ 0x28f004, 0x28f005, input_port_5_word_r },	 // Dip Switch A - Wrong !!! /*/
-/*	{ 0x28f006, 0x28f007, input_port_6_word_r },	 // Dip Switch B - Wrong !!! /*/
-/*	{ 0x28f008, 0x28f009, input_port_7_word_r },	 // Territory Jumper block - Wrong !!! /*/
-/*	{ 0x28f002, 0x28fbff, MRA16_RAM },				 // part of shared ram /*/
+/*	{ 0x28f002, 0x28f003, MRA16_RAM },*/				 /* part of shared ram */
+/*	{ 0x28f004, 0x28f005, input_port_5_word_r },*/	 /* Dip Switch A - Wrong !!! */
+/*	{ 0x28f006, 0x28f007, input_port_6_word_r },*/	 /* Dip Switch B - Wrong !!! */
+/*	{ 0x28f008, 0x28f009, input_port_7_word_r },*/	 /* Territory Jumper block - Wrong !!! */
+/*	{ 0x28f002, 0x28fbff, MRA16_RAM },*/				 /* part of shared ram */
 	{ 0x28fc00, 0x28ffff, Zx80_sharedram_r },		/* 16-bit on 68000 side, 8-bit on Zx80 side */
 #endif
 	{ 0x300004, 0x300007, toaplan2_0_videoram16_r },
@@ -1884,9 +1679,9 @@ static MEMORY_WRITE16_START( fixeight_writemem )
 #else
 	{ 0x28e000, 0x28efff, shared_ram_w, &toaplan2_shared_ram16 },
 	{ 0x28f000, 0x28f001, Zx80_command_port_w },	/* Zx80 command port */
-/*	{ 0x28f002, 0x28f003, MWA16_RAM },				 // part of shared ram /*/
-/*	{ 0x28f004, 0x28f009, MWA16_NOP },				 // part of shared ram /*/
-/*	{ 0x28f002, 0x28fbff, MWA16_RAM },				 // part of shared ram /*/
+/*	{ 0x28f002, 0x28f003, MWA16_RAM },*/				 /* part of shared ram */
+/*	{ 0x28f004, 0x28f009, MWA16_NOP },*/				 /* part of shared ram */
+/*	{ 0x28f002, 0x28fbff, MWA16_RAM },*/				 /* part of shared ram */
 	{ 0x28fc00, 0x28ffff, Zx80_sharedram_w, &Zx80_shared_ram },	/* 16-bit on 68000 side, 8-bit on Zx80 side */
 #endif
 	{ 0x300000, 0x300001, toaplan2_0_voffs_w },		/* VideoRAM selector/offset */
@@ -1938,7 +1733,7 @@ MEMORY_END
 static MEMORY_READ16_START( vfive_readmem )
 	{ 0x000000, 0x07ffff, MRA16_ROM },
 	{ 0x100000, 0x103fff, MRA16_RAM },
-/*	{ 0x200000, 0x20ffff, MRA16_ROM },				 // Sound ROM is here ??? /*/
+/*	{ 0x200000, 0x20ffff, MRA16_ROM },*/				 /* Sound ROM is here ??? */
 	{ 0x200010, 0x200011, input_port_1_word_r },	/* Player 1 controls */
 	{ 0x200014, 0x200015, input_port_2_word_r },	/* Player 2 controls */
 	{ 0x200018, 0x200019, input_port_3_word_r },	/* Coin/System inputs */
@@ -1962,7 +1757,7 @@ MEMORY_END
 static MEMORY_WRITE16_START( vfive_writemem )
 	{ 0x000000, 0x07ffff, MWA16_ROM },
 	{ 0x100000, 0x103fff, MWA16_RAM },
-/*	{ 0x200000, 0x20ffff, MWA16_ROM },				 // Sound ROM is here ??? /*/
+/*	{ 0x200000, 0x20ffff, MWA16_ROM },*/				 /* Sound ROM is here ??? */
 	{ 0x20001c, 0x20001d, toaplan2_coin_word_w },	/* Coin count/lock */
 #if Zx80
 	{ 0x21e000, 0x21fbff, shared_ram_w, &toaplan2_shared_ram16 },	/* $21F000 */
@@ -2132,7 +1927,7 @@ static MEMORY_WRITE16_START( shippumd_writemem )
 	{ 0x000000, 0x0fffff, MWA16_ROM },
 	{ 0x100000, 0x10ffff, MWA16_RAM },
 	{ 0x218000, 0x21bfff, raizing_shared_ram_w },
-/*	{ 0x21c008, 0x21c009, MWA16_NOP },				 // ??? /*/
+/*	{ 0x21c008, 0x21c009, MWA16_NOP },*/				 /* ??? */
 	{ 0x21c01c, 0x21c01d, toaplan2_coin_word_w },
 	{ 0x300000, 0x300001, toaplan2_0_voffs_w },
 	{ 0x300004, 0x300007, toaplan2_0_videoram16_w },
@@ -2374,24 +2169,70 @@ static PORT_WRITE_START( bbakraid_sound_writeport )
 	{ 0x81, 0x81, YMZ280B_data_0_w },
 PORT_END
 
+READ_HANDLER(tekipaki_soundlatch_r)
+{
+	m_cmdavailable = 0;
+	return mcu_data;
+};
 
-#if HD64x180
+READ_HANDLER(tekipaki_cmdavailable_r)
+{
+	if (m_cmdavailable) return 0xff;
+	else return 0x00;
+};
+
+/* grant2258 we initilaze shared ram at init use auto_malloc to not malloc */
+static MEMORY_READ_START( ghox_hd647180_readmem )
+    { 0x00000, 0x03fff, MRA_ROM },  /* Internal 16k byte ROM */
+	{ 0x0fe00, 0x0ffff, MRA_RAM },  /* Internal 512 byte RAM */
+	{ 0x3fe00, 0x3ffff, MRA_RAM },   /* RAM (is this actually just internal RAM getting mapped badly?) */
+	{ 0x40000, 0x4f7ff, shared_ram8_r },
+	{ 0x80002, 0x80002, input_port_4_r },
+	{ 0x80004, 0x80004, input_port_5_r },
+	{ 0x80006, 0x80006, MRA_NOP }, /* nothing? */
+	{ 0x80008, 0x80008, ghox_p1_v_analog_r },
+	{ 0x8000a, 0x8000a, ghox_p2_v_analog_r },
+	{ 0x8000c, 0x8000e, input_port_3_r },
+	{ 0x8000e, 0x8000f, YM2151_status_port_0_r },
+MEMORY_END
+
+
+static MEMORY_WRITE_START( ghox_hd647180_writemem )
+    { 0x00000, 0x03fff, MWA_ROM },   /* Internal 16k byte ROM */
+	{ 0x0fe00, 0x0ffff, MWA_RAM },  /* Internal 512 byte RAM */
+	{ 0x3fe00, 0x3ffff, MWA_RAM },  /* RAM (is this actually just internal RAM getting mapped badly?) */
+	{ 0x40000, 0x4f7ff, shared_ram8_w,},
+	{ 0x8000e, 0x8000f, YM2151_word_0_w },
+MEMORY_END
+
+
 static MEMORY_READ_START( hd647180_readmem )
-	{ 0x0000, 0x7fff, MRA_ROM },
-	{ 0xfe00, 0xffff, MRA_RAM },			/* Internal 512 bytes of RAM */
+	{ 0x00000, 0x03fff, MRA_ROM },
+	{ 0x0fe00, 0x0ffff, MRA_RAM },			/* Internal 512 bytes of RAM */
 MEMORY_END
 
 static MEMORY_WRITE_START( hd647180_writemem )
-	{ 0x0000, 0x7fff, MWA_ROM },
-	{ 0xfe00, 0xffff, MWA_RAM },			/* Internal 512 bytes of RAM */
+	{ 0x00000, 0x03fff, MWA_ROM },
+	{ 0x0fe00, 0x0ffff, MWA_RAM },			/* Internal 512 bytes of RAM */
 MEMORY_END
-#endif
+
+static PORT_READ_START( hd647180_port_readmem )
+	{ 0x60, 0x60, tekipaki_cmdavailable_r },
+	{ 0x82, 0x82, YM3812_status_port_0_r },
+	{ 0x83, 0x83, YM3812_status_port_0_r },
+	{ 0x84, 0x84, tekipaki_soundlatch_r },
+PORT_END
+
+static PORT_WRITE_START( hd647180_port_writemem )
+	{ 0x82, 0x82, YM3812_control_port_0_w },
+	{ 0x83, 0x83, YM3812_write_port_0_w },
+PORT_END
 
 
 #if Zx80
 static MEMORY_READ_START( Zx80_readmem )
 	{ 0x00000, 0x03fff, MRA_ROM },
-/*	{ 0x00000, 0x007ff, MRA_RAM },			 // External shared RAM (Banked) /*/
+/*	{ 0x00000, 0x007ff, MRA_RAM },*/			 /* External shared RAM (Banked)  */
 	{ 0x04000, 0x04000, YM2151_status_port_0_r },
 	{ 0x04002, 0x04002, OKIM6295_status_0_r },
 	{ 0x04008, 0x04008, input_port_1_r },
@@ -2403,7 +2244,7 @@ MEMORY_END
 
 static MEMORY_WRITE_START( Zx80_writemem )
 	{ 0x00000, 0x03fff, MWA_ROM, },
-/*	{ 0x00000, 0x007ff, MWA_RAM, },			 // External shared RAM (Banked) /*/
+/*	{ 0x00000, 0x007ff, MWA_RAM, },*/			 /* External shared RAM (Banked) */
 	{ 0x04000, 0x04000, YM2151_register_port_0_w },
 	{ 0x04001, 0x04001, YM2151_data_port_0_w },
 	{ 0x04002, 0x04002, OKIM6295_data_0_w },
@@ -2419,6 +2260,21 @@ static PORT_READ_START( Zx80_readport )
 	{ 0x0062, 0x0062, input_port_6_r },		/* Directly mapped I/O ports */
 PORT_END
 #endif
+
+static MEMORY_READ_START( dogyuun_z80_sound_readmem )
+    { 0x0000, 0x7fff, MRA_ROM },
+	{ 0xc000, 0xc7ff, shared_ram8_r },
+	{ 0xe001, 0xe001, YM2151_status_port_0_r },
+	{ 0xe004, 0xe004, OKIM6295_status_0_r },
+MEMORY_END
+
+static MEMORY_WRITE_START( dogyuun_z80_sound_writemem )
+    { 0x0000, 0x7fff, MWA_ROM },
+	{ 0xc000, 0xc7ff, shared_ram8_w },
+	{ 0xe000, 0xe000, YM2151_register_port_0_w },
+	{ 0xe001, 0xe001, YM2151_data_port_0_w },
+	{ 0xe004, 0xe004, OKIM6295_data_0_w },
+MEMORY_END
 
 
 
@@ -2630,7 +2486,7 @@ INPUT_PORTS_START( ghox )
 	PORT_DIPSETTING(	0x08, "100k only" )
 	PORT_DIPSETTING(	0x0c, "None" )
 	LIVES_8
-	PORT_BITX(	  0x40,	0x00, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Invulnerability", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x40,	0x00, "Invulnerability" )
 	PORT_DIPSETTING(	0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(	0x40, DEF_STR( On ) )
 	PORT_DIPNAME( 0x80,	0x00, DEF_STR( Unused ) )
@@ -2703,7 +2559,7 @@ INPUT_PORTS_START( dogyuun )
 	PORT_DIPSETTING(		0x0008, "400k only" )
 	PORT_DIPSETTING(		0x000c, "None" )
 	LIVES_16
-	PORT_BITX(	  0x0040,	0x0000, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Invulnerability", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x0040,	0x0000, "Invulnerability" )
 	PORT_DIPSETTING(		0x0000, DEF_STR( Off ) )
 	PORT_DIPSETTING(		0x0040, DEF_STR( On ) )
 	PORT_DIPNAME( 0x0080,	0x0000, "Allow Continue" )
@@ -2772,7 +2628,7 @@ INPUT_PORTS_START( kbash )
 	PORT_DIPSETTING(		0x0000, "2" )
 	PORT_DIPSETTING(		0x0020, "3" )
 	PORT_DIPSETTING(		0x0010, "4" )
-	PORT_BITX(	  0x0040,	0x0000, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Invulnerability", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x0040,	0x0000, "Invulnerability" )
 	PORT_DIPSETTING(		0x0000, DEF_STR( Off ) )
 	PORT_DIPSETTING(		0x0040, DEF_STR( On ) )
 	PORT_DIPNAME( 0x0080,	0x0000, "Allow Continue" )
@@ -2833,7 +2689,7 @@ INPUT_PORTS_START( kbash2 )
 	PORT_DIPSETTING(		0x0000, "2" )
 	PORT_DIPSETTING(		0x0020, "3" )
 	PORT_DIPSETTING(		0x0010, "4" )
-	PORT_DIPNAME( 0x0040, 0x0000, "Invulnerability" )
+	PORT_DIPNAME( 0x0040,   0x0000, "Invulnerability" )
 	PORT_DIPSETTING(		0x0000, DEF_STR( Off ) )
 	PORT_DIPSETTING(		0x0040, DEF_STR( On ) )
 	PORT_DIPNAME( 0x0080,	0x0000, "Allow Continue" )
@@ -2892,7 +2748,7 @@ INPUT_PORTS_START( truxton2 )
 	PORT_DIPSETTING(		0x0000, "3" )
 	PORT_DIPSETTING(		0x0020, "4" )
 	PORT_DIPSETTING(		0x0010, "5" )
-	PORT_BITX(	  0x0040,	0x0000, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Invulnerability", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x0040,	0x0000, "Invulnerability" )
 	PORT_DIPSETTING(		0x0000, DEF_STR( Off ) )
 	PORT_DIPSETTING(		0x0040, DEF_STR( On ) )
 	PORT_DIPNAME( 0x0080,	0x0000, "Allow Continue" )
@@ -2933,7 +2789,7 @@ INPUT_PORTS_START( pipibibs )
 	PORT_DIPSETTING(	0x08, "200k only" )
 	PORT_DIPSETTING(	0x0c, "None" )
 	LIVES_8
-	PORT_BITX(	  0x40,	0x00, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Invulnerability", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x40,	0x00, "Invulnerability" )
 	PORT_DIPSETTING(	0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(	0x40, DEF_STR( On ) )
 	PORT_DIPNAME( 0x80,	0x00, DEF_STR( Unused ) )
@@ -2979,7 +2835,7 @@ INPUT_PORTS_START( whoopee )
 	PORT_DIPSETTING(	0x08, "200k only" )
 	PORT_DIPSETTING(	0x0c, "None" )
 	LIVES_8
-	PORT_BITX(	  0x40,	0x00, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Invulnerability", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x40,	0x00, "Invulnerability" )
 	PORT_DIPSETTING(	0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(	0x40, DEF_STR( On ) )
 	PORT_DIPNAME( 0x80,	0x00, DEF_STR( Unused ) )
@@ -3004,8 +2860,8 @@ INPUT_PORTS_END
 
 INPUT_PORTS_START( pipibibi )
 	PORT_START		/* (0) VBlank */
-/*	PORT_BIT( 0x0001, IP_ACTIVE_HIGH, IPT_VBLANK )		 // This video HW /*/
-/*	PORT_BIT( 0xfffe, IP_ACTIVE_HIGH, IPT_UNKNOWN )		 // doesnt wait for VBlank /*/
+/*	PORT_BIT( 0x0001, IP_ACTIVE_HIGH, IPT_VBLANK ) */		 /* This video HW */ 
+/*	PORT_BIT( 0xfffe, IP_ACTIVE_HIGH, IPT_UNKNOWN ) */		 /* doesnt wait for VBlank */
 
 	TOAPLAN2_PLAYER_INPUT( IPF_PLAYER1, IPT_UNKNOWN, IPT_UNKNOWN )
 
@@ -3036,7 +2892,7 @@ INPUT_PORTS_START( pipibibi )
 	PORT_DIPSETTING(	0x08, "200k only" )
 	PORT_DIPSETTING(	0x0c, "None" )
 	LIVES_8
-	PORT_BITX(	  0x40,	0x00, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Invulnerability", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x40,	0x00, "Invulnerability" )
 	PORT_DIPSETTING(	0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(	0x40, DEF_STR( On ) )
 	PORT_DIPNAME( 0x80,	0x00, DEF_STR( Unused ) )
@@ -3115,7 +2971,7 @@ INPUT_PORTS_START( fixeight )
 	PORT_DIPSETTING(		0x0000, "500k and every 500k" )
 	PORT_DIPSETTING(		0x000c, "None" )
 	LIVES_16
-	PORT_BITX(	  0x0040,	0x0000, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Invulnerability", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x0040,	0x0000, "Invulnerability" )
 	PORT_DIPSETTING(		0x0000, DEF_STR( Off ) )
 	PORT_DIPSETTING(		0x0040, DEF_STR( On ) )
 	PORT_DIPNAME( 0x0080,	0x0000, "Allow Continue" )
@@ -3142,8 +2998,7 @@ INPUT_PORTS_START( fixeight )
 INPUT_PORTS_END
 
 INPUT_PORTS_START( fixeighb )
-
-PORT_START		/* (0) VBlank */
+    PORT_START		/* (0) VBlank */
 	PORT_BIT( 0x0001, IP_ACTIVE_HIGH, IPT_VBLANK )
 	PORT_BIT( 0xfffe, IP_ACTIVE_HIGH, IPT_UNKNOWN )
 
@@ -3230,7 +3085,7 @@ INPUT_PORTS_START( grindstm )
 	PORT_DIPSETTING(		0x0000, "300k and 800k" )
 	PORT_DIPSETTING(		0x000c, "None" )
 	LIVES_16
-	PORT_BITX(	  0x0040,	0x0000, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Invulnerability", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x0040,	0x0000, "Invulnerability" )
 	PORT_DIPSETTING(		0x0000, DEF_STR( Off ) )
 	PORT_DIPSETTING(		0x0040, DEF_STR( On ) )
 	PORT_DIPNAME( 0x0080,	0x0000, "Allow Continue" )
@@ -3293,7 +3148,7 @@ INPUT_PORTS_START( vfive )
 	PORT_DIPSETTING(		0x0000, "300k and 800k" )
 	PORT_DIPSETTING(		0x000c, "None" )
 	LIVES_16
-	PORT_BITX(	  0x0040,	0x0000, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Invulnerability", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x0040,	0x0000, "Invulnerability" )
 	PORT_DIPSETTING(		0x0000, DEF_STR( Off ) )
 	PORT_DIPSETTING(		0x0040, DEF_STR( On ) )
 	PORT_DIPNAME( 0x0080,	0x0000, "Allow Continue" )
@@ -3339,7 +3194,7 @@ INPUT_PORTS_START( batsugun )
 	PORT_DIPSETTING(		0x0008, "1500k only" )
 	PORT_DIPSETTING(		0x000c, "None" )
 	LIVES_16
-	PORT_BITX(	  0x0040,	0x0000, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Invulnerability", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x0040,	0x0000, "Invulnerability" )
 	PORT_DIPSETTING(		0x0000, DEF_STR( Off ) )
 	PORT_DIPSETTING(		0x0040, DEF_STR( On ) )
 	PORT_DIPNAME( 0x0080,	0x0000, "Allow Continue" )
@@ -3412,7 +3267,7 @@ INPUT_PORTS_START( snowbro2 )
 	PORT_DIPSETTING(		0x0020, "2" )
 	PORT_DIPSETTING(		0x0000, "3" )
 	PORT_DIPSETTING(		0x0010, "4" )
-	PORT_BITX(	  0x0040,	0x0000, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Invulnerability", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x0040,	0x0000, "Invulnerability" )
 	PORT_DIPSETTING(		0x0000, DEF_STR( Off ) )
 	PORT_DIPSETTING(		0x0040, DEF_STR( On ) )
 	PORT_DIPNAME( 0x0080,	0x0000, "Maximum Players" )
@@ -3469,7 +3324,7 @@ INPUT_PORTS_START( sstriker )
 	PORT_DIPSETTING(		0x0008, "200k only" )
 	PORT_DIPSETTING(		0x000c, "None" )
 	LIVES_16
-	PORT_BITX(	  0x0040,	0x0000, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Invulnerability", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x0040,	0x0000, "Invulnerability" )
 	PORT_DIPSETTING(		0x0000, DEF_STR( Off ) )
 	PORT_DIPSETTING(		0x0040, DEF_STR( On ) )
 	PORT_DIPNAME( 0x0080,	0x0000, "Allow Continue" )
@@ -3524,7 +3379,7 @@ INPUT_PORTS_START( mahoudai )
 	PORT_DIPSETTING(		0x0008, "200k only" )
 	PORT_DIPSETTING(		0x000c, "None" )
 	LIVES_16
-	PORT_BITX(	  0x0040,	0x0000, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Invulnerability", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x0040,	0x0000, "Invulnerability" )
 	PORT_DIPSETTING(		0x0000, DEF_STR( Off ) )
 	PORT_DIPSETTING(		0x0040, DEF_STR( On ) )
 	PORT_DIPNAME( 0x0080,	0x0000, "Allow Continue" )
@@ -3573,7 +3428,7 @@ INPUT_PORTS_START( kingdmgp )
 	PORT_DIPSETTING(		0x0008, "200k only" )
 	PORT_DIPSETTING(		0x000c, "None" )
 	LIVES_16
-	PORT_BITX(	  0x0040,	0x0000, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Invulnerability", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x0040,	0x0000, "Invulnerability" )
 	PORT_DIPSETTING(		0x0000, DEF_STR( Off ) )
 	PORT_DIPSETTING(		0x0040, DEF_STR( On ) )
 	PORT_DIPNAME( 0x0080,	0x0000, "Allow Continue" )
@@ -3631,7 +3486,7 @@ INPUT_PORTS_START( shippumd )
 	PORT_DIPSETTING(		0x0008, "200k only" )
 	PORT_DIPSETTING(		0x000c, "None" )
 	LIVES_16
-	PORT_BITX(	  0x0040,	0x0000, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Invulnerability", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x0040,	0x0000, "Invulnerability" )
 	PORT_DIPSETTING(		0x0000, DEF_STR( Off ) )
 	PORT_DIPSETTING(		0x0040, DEF_STR( On ) )
 	PORT_DIPNAME( 0x0080,	0x0000, "Allow Continue" )
@@ -3706,7 +3561,7 @@ INPUT_PORTS_START( battleg )
 	PORT_DIPSETTING(		0x0010, "4" )
 	PORT_DIPSETTING(		0x0040, "5" )
 	PORT_DIPSETTING(		0x0050, "6" )
-	PORT_BITX( 0,			0x0060, IPT_DIPSWITCH_SETTING | IPF_CHEAT, "Infinite", 0, 0 )
+	PORT_DIPSETTING(		0x0060, "Infinite" )
 /*	PORT_BITX( 0,			0x0070, IPT_DIPSWITCH_SETTING | IPF_CHEAT, "Invulnerability", 0, 0 )*/
 	PORT_DIPNAME( 0x0080,	0x0000, DEF_STR( Bonus_Life ) )
 	/* Bonus_Life for Non European territories */
@@ -3795,7 +3650,7 @@ INPUT_PORTS_START( battlega )
 	PORT_DIPSETTING(		0x0010, "4" )
 	PORT_DIPSETTING(		0x0040, "5" )
 	PORT_DIPSETTING(		0x0050, "6" )
-	PORT_BITX( 0,			0x0060, IPT_DIPSWITCH_SETTING | IPF_CHEAT, "Infinite", 0, 0 )
+	PORT_DIPSETTING(		0x0060, "Infinite" )
 /*	PORT_BITX( 0,			0x0070, IPT_DIPSWITCH_SETTING | IPF_CHEAT, "Invulnerability", 0, 0 )*/
 	PORT_DIPNAME( 0x0080,	0x0000, DEF_STR( Bonus_Life ) )
 	/* Bonus_Life for Non European territories */
@@ -3883,7 +3738,7 @@ INPUT_PORTS_START( battlegb )
 	PORT_DIPSETTING(		0x0010, "4" )
 	PORT_DIPSETTING(		0x0040, "5" )
 	PORT_DIPSETTING(		0x0050, "6" )
-	PORT_BITX( 0,			0x0060, IPT_DIPSWITCH_SETTING | IPF_CHEAT, "Infinite", 0, 0 )
+	PORT_DIPSETTING(		0x0060, "Infinite" )
 /*	PORT_BITX( 0,			0x0070, IPT_DIPSWITCH_SETTING | IPF_CHEAT, "Invulnerability", 0, 0 )*/
 	PORT_DIPNAME( 0x0080,	0x0000, DEF_STR( Bonus_Life ) )
 	/* Bonus_Life for Non European territories */
@@ -3952,7 +3807,7 @@ INPUT_PORTS_START( batrider )
 	PORT_DIPNAME( 0x0800,	0x0000, "Allow Continue" )
 	PORT_DIPSETTING(		0x0800, DEF_STR( No ) )
 	PORT_DIPSETTING(		0x0000, DEF_STR( Yes ) )
-	PORT_BITX(	  0x1000,	0x0000, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Invulnerability", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x1000,	0x0000, "Invulnerability" )
 	PORT_DIPSETTING(		0x0000, DEF_STR( Off ) )
 	PORT_DIPSETTING(		0x1000, DEF_STR( On ) )
 	/*  These Dips are showed only when Coin_A is set to Free_Play.
@@ -4077,7 +3932,7 @@ INPUT_PORTS_START( bbakraid )
 	PORT_DIPNAME( 0x0800,	0x0000, "Allow Continue" )
 	PORT_DIPSETTING(		0x0800, DEF_STR( No ) )
 	PORT_DIPSETTING(		0x0000, DEF_STR( Yes ) )
-	PORT_BITX(	  0x1000,	0x0000, IPT_DIPSWITCH_NAME | IPF_CHEAT, "Invulnerability", IP_KEY_NONE, IP_JOY_NONE )
+	PORT_DIPNAME( 0x1000,	0x0000, "Invulnerability" )
 	PORT_DIPSETTING(		0x0000, DEF_STR( Off ) )
 	PORT_DIPSETTING(		0x1000, DEF_STR( On ) )
 	PORT_DIPNAME( 0x2000,	0x0000, "Save Scores" )
@@ -4264,8 +4119,8 @@ static struct GfxDecodeInfo truxton2_gfxdecodeinfo[] =
 {
 	{ REGION_GFX1, 0,       &tilelayout            , 0, 128 },
 	{ REGION_GFX1, 0,       &spritelayout          , 0,  64 },
-/*	{ REGION_CPU1, 0x40000, &truxton2_tx_tilelayout, 0, 128 },	 // Truxton 2 /*/
-/*	{ REGION_CPU1, 0x68000, &truxton2_tx_tilelayout, 0, 128 },	 // Fix Eight /*/
+/*	{ REGION_CPU1, 0x40000, &truxton2_tx_tilelayout, 0, 128 },*/	 /* Truxton 2  */
+/*	{ REGION_CPU1, 0x68000, &truxton2_tx_tilelayout, 0, 128 },*/	 /* Fix Eight  */
 	{ 0, 0, &truxton2_tx_tilelayout,  0, 128 },
 	{ -1 } /* end of array */
 };
@@ -4389,6 +4244,14 @@ static struct OKIM6295interface kbash2_okim6295_interface =
 	{ 100, 100 }
 };
 
+static struct OKIM6295interface dogyuunto_okim6295_interface =
+{
+	1,						/* 1 chip */
+	{ 1056000/132 },	    /* frequency (Hz). 1.56MHz to 6295 (using B mode) */
+	{ REGION_SOUND1 },		/* memory region */
+	{ 40 }
+};
+
 static struct YMZ280Binterface ymz280b_interface =
 {
 	1,
@@ -4407,13 +4270,13 @@ static MACHINE_DRIVER_START( tekipaki )
 	MDRV_CPU_MEMORY(tekipaki_readmem,tekipaki_writemem)
 	MDRV_CPU_VBLANK_INT(toaplan2_vblank_irq4,262)
 
-#if HD64x180
 	MDRV_CPU_ADD(Z180, 10000000)			/* HD647180 CPU actually */
 	MDRV_CPU_MEMORY(hd647180_readmem,hd647180_writemem)
-#endif
+	MDRV_CPU_PORTS(hd647180_port_readmem,hd647180_port_writemem)
 
 	MDRV_FRAMES_PER_SECOND(60)
 	MDRV_VBLANK_DURATION(DEFAULT_REAL_60HZ_VBLANK_DURATION)
+    MDRV_INTERLEAVE(10)
 
 	MDRV_MACHINE_INIT(toaplan2)
 
@@ -4429,10 +4292,7 @@ static MACHINE_DRIVER_START( tekipaki )
 	MDRV_VIDEO_UPDATE(toaplan2_0)
 
 	/* sound hardware */
-/*	
 	MDRV_SOUND_ADD(YM3812, ym3812_interface)
-*/
-	MDRV_SOUND_ADD(SAMPLES, tekipaki_samples_interface )
 MACHINE_DRIVER_END
 
 
@@ -4443,13 +4303,12 @@ static MACHINE_DRIVER_START( ghox )
 	MDRV_CPU_MEMORY(ghox_readmem,ghox_writemem)
 	MDRV_CPU_VBLANK_INT(toaplan2_vblank_irq4,262)
 
-#if HD64x180
 	MDRV_CPU_ADD(Z180, 10000000)			/* HD647180 CPU actually */
-	MDRV_CPU_MEMORY(hd647180_readmem,hd647180_writemem)
-#endif
+	MDRV_CPU_MEMORY(ghox_hd647180_readmem,ghox_hd647180_writemem)
 
 	MDRV_FRAMES_PER_SECOND(60)
 	MDRV_VBLANK_DURATION(DEFAULT_REAL_60HZ_VBLANK_DURATION)
+	MDRV_INTERLEAVE(100)
 
 	MDRV_MACHINE_INIT(ghox)
 
@@ -4465,11 +4324,7 @@ static MACHINE_DRIVER_START( ghox )
 	MDRV_VIDEO_UPDATE(toaplan2_0)
 
 	/* sound hardware */
-/*	
-	MDRV_SOUND_ATTRIBUTES(SOUND_SUPPORTS_STEREO)
 	MDRV_SOUND_ADD(YM2151, ym2151_interface)
-*/
-	MDRV_SOUND_ADD(SAMPLES, ghox_samples_interface )
 MACHINE_DRIVER_END
 
 
@@ -4506,6 +4361,39 @@ static MACHINE_DRIVER_START( dogyuun )
 	MDRV_SOUND_ATTRIBUTES(SOUND_SUPPORTS_STEREO)
 	MDRV_SOUND_ADD(YM2151, ym2151_interface)
 	MDRV_SOUND_ADD(OKIM6295, okim6295_interface)
+MACHINE_DRIVER_END
+
+static MACHINE_DRIVER_START( dogyuunto )
+
+	/* basic machine hardware */
+	MDRV_CPU_ADD(M68000, 24000000/2)			/* 12MHz Oscillator */
+	MDRV_CPU_MEMORY(dogyuun_z80_readmem,dogyuun_z80_writemem)
+	MDRV_CPU_VBLANK_INT(toaplan2_vblank_irq4,262)
+
+	MDRV_CPU_ADD(Z80, 27000000/8)			/* ??? 3.37MHz , 27MHz Oscillator */
+	MDRV_CPU_MEMORY(dogyuun_z80_sound_readmem,dogyuun_z80_sound_writemem)
+
+	MDRV_FRAMES_PER_SECOND( (27000000.0 / 4) / (432 * 263) )
+	MDRV_VBLANK_DURATION(DEFAULT_REAL_60HZ_VBLANK_DURATION)
+	MDRV_INTERLEAVE(10)
+
+	MDRV_MACHINE_INIT(dogyuun)
+
+	/* video hardware */
+	MDRV_VIDEO_ATTRIBUTES(VIDEO_TYPE_RASTER | VIDEO_UPDATE_BEFORE_VBLANK)
+	MDRV_SCREEN_SIZE(32*16, 32*16)
+	MDRV_VISIBLE_AREA(0, 319, 0, 239)
+	MDRV_GFXDECODE(gfxdecodeinfo_2)
+	MDRV_PALETTE_LENGTH(2048)
+
+	MDRV_VIDEO_START(toaplan2_1)
+	MDRV_VIDEO_EOF(toaplan2_1)
+	MDRV_VIDEO_UPDATE(dogyuun_1)
+
+	/* sound hardware */
+	MDRV_SOUND_ATTRIBUTES(SOUND_SUPPORTS_STEREO)
+	MDRV_SOUND_ADD(YM2151, ym2151_interface)
+	MDRV_SOUND_ADD(OKIM6295, dogyuunto_okim6295_interface)
 MACHINE_DRIVER_END
 
 
@@ -4633,39 +4521,6 @@ static MACHINE_DRIVER_START( pipibibs )
 MACHINE_DRIVER_END
 
 
-static MACHINE_DRIVER_START( whoopee )
-
-	/* basic machine hardware */
-	MDRV_CPU_ADD(M68000, 10000000)			/* 10MHz Oscillator */
-	MDRV_CPU_MEMORY(tekipaki_readmem,tekipaki_writemem)
-	MDRV_CPU_VBLANK_INT(toaplan2_vblank_irq4,262)
-
-	MDRV_CPU_ADD(Z80, 27000000/8)			/* This should be a HD647180 */
-											/* Change this to 10MHz when HD647180 gets dumped. 10MHz Oscillator */
-	MDRV_CPU_MEMORY(sound_readmem,sound_writemem)
-
-	MDRV_FRAMES_PER_SECOND(60)
-	MDRV_VBLANK_DURATION(DEFAULT_REAL_60HZ_VBLANK_DURATION)
-	MDRV_INTERLEAVE(10)
-
-	MDRV_MACHINE_INIT(toaplan2)
-
-	/* video hardware */
-	MDRV_VIDEO_ATTRIBUTES(VIDEO_TYPE_RASTER | VIDEO_UPDATE_BEFORE_VBLANK)
-	MDRV_SCREEN_SIZE(32*16, 32*16)
-	MDRV_VISIBLE_AREA(0, 319, 0, 239)
-	MDRV_GFXDECODE(gfxdecodeinfo)
-	MDRV_PALETTE_LENGTH(2048)
-
-	MDRV_VIDEO_START(toaplan2_0)
-	MDRV_VIDEO_EOF(toaplan2_0)
-	MDRV_VIDEO_UPDATE(toaplan2_0)
-
-	/* sound hardware */
-	MDRV_SOUND_ADD(YM3812, ym3812_interface)
-MACHINE_DRIVER_END
-
-
 static MACHINE_DRIVER_START( pipibibi )
 
 	/* basic machine hardware */
@@ -4715,7 +4570,7 @@ static MACHINE_DRIVER_START( fixeight )
 	MDRV_VBLANK_DURATION(DEFAULT_REAL_60HZ_VBLANK_DURATION)
 
 	MDRV_MACHINE_INIT(toaplan2)
-/*/	MDRV_NVRAM_HANDLER(fixeight)		 // See 37B6 code /*/
+/*	MDRV_NVRAM_HANDLER(fixeight)*/		 /* See 37B6 code */
 
 	/* video hardware */
 	MDRV_VIDEO_ATTRIBUTES(VIDEO_TYPE_RASTER | VIDEO_UPDATE_BEFORE_VBLANK)
@@ -5040,15 +4895,12 @@ MACHINE_DRIVER_END
 
 /* -------------------------- Toaplan games ------------------------- */
 ROM_START( tekipaki )
-	ROM_REGION( 0x020000, REGION_CPU1, 0 )			/* Main 68K code */
+	ROM_REGION( 0x040000, REGION_CPU1, 0 )			/* Main 68K code */
 	ROM_LOAD16_BYTE( "tp020-1.bin", 0x000000, 0x010000, CRC(d8420bd5) SHA1(30c1ad9e053cd7e79adb42aa428ebee28e144755) )
 	ROM_LOAD16_BYTE( "tp020-2.bin", 0x000001, 0x010000, CRC(7222de8e) SHA1(8352ae23efc24a2e20cc24b6d37cb8fc6b1a730c) )
-
-#if HD64x180
-	ROM_REGION( 0x10000, REGION_CPU2, 0 )			/* Sound HD647180 code */
-	/* sound CPU is a HD647180 (Z180) with internal ROM - not yet supported */
-	ROM_LOAD( "hd647180.020", 0x00000, 0x08000, NO_DUMP )
-#endif
+	
+	ROM_REGION( 0x8000, REGION_CPU2, 0 )    /* Sound HD647180 code */
+	ROM_LOAD( "hd647180.020", 0x00000, 0x08000, CRC(d5157c12) SHA1(b2c6c087bb539456a9e562d0b40f05dde26cacd3) )
 
 	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "tp020-4.bin", 0x000000, 0x080000, CRC(3ebbe41e) SHA1(cea196c5f83e1a23d5b538a0db9bbbffa7af5118) )
@@ -5060,11 +4912,21 @@ ROM_START( ghox )
 	ROM_LOAD16_BYTE( "tp021-01.u10", 0x000000, 0x020000, CRC(9e56ac67) SHA1(daf241d9e55a6e60fc004ed61f787641595b1e62) )
 	ROM_LOAD16_BYTE( "tp021-02.u11", 0x000001, 0x020000, CRC(15cac60f) SHA1(6efa3a50a5dfe6ef4072738d6a7d0d95dca8a675) )
 
-#if HD64x180
 	ROM_REGION( 0x10000, REGION_CPU2, 0 )			/* Sound HD647180 code */
-	/* sound CPU is a HD647180 (Z180) with internal ROM - not yet supported */
-	ROM_LOAD( "hd647180.021", 0x00000, 0x08000, NO_DUMP )
-#endif
+    ROM_LOAD( "hd647180.021", 0x00000, 0x08000, CRC(6ab59e5b) SHA1(d814dd3a8f1ee638794e2bd422eed4247ba4a15e) )
+
+	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
+	ROM_LOAD( "tp021-03.u36", 0x000000, 0x080000, CRC(a15d8e9d) SHA1(640a33997bdce8e84bea6a944139716379839037) )
+	ROM_LOAD( "tp021-04.u37", 0x080000, 0x080000, CRC(26ed1c9a) SHA1(37da8af86ea24327444c2d4ad3dfbd936208d43d) )
+ROM_END
+
+ROM_START( ghoxj ) /* 8-way joystick for controls */
+	ROM_REGION( 0x040000, REGION_CPU1, 0 )			/* Main 68K code */
+	ROM_LOAD16_BYTE( "tp021-01a.u10", 0x000000, 0x020000, CRC(c11b13c8) SHA1(da7defc1d3b6ddded910ba56c31fbbdb5ed57b09) )
+	ROM_LOAD16_BYTE( "tp021-02a.u11", 0x000001, 0x020000, CRC(8d426767) SHA1(1ed4a8bcbf4352257e7d58cb5c2c91eb48c2f047) )
+
+	ROM_REGION( 0x10000, REGION_CPU2, 0 )			/* Sound HD647180 code */
+    ROM_LOAD( "hd647180.021", 0x00000, 0x08000, CRC(6ab59e5b) SHA1(d814dd3a8f1ee638794e2bd422eed4247ba4a15e) )
 
 	ROM_REGION( 0x100000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "tp021-03.u36", 0x000000, 0x080000, CRC(a15d8e9d) SHA1(640a33997bdce8e84bea6a944139716379839037) )
@@ -5093,6 +4955,25 @@ ROM_START( dogyuun )
 
 	ROM_REGION( 0x40000, REGION_SOUND1, 0 )		/* ADPCM Samples */
 	ROM_LOAD( "tp022_2.w30", 0x00000, 0x40000, CRC(043271b3) SHA1(c7eaa929e55dd956579b824ea9d20a1d0129a925) )
+ROM_END
+
+ROM_START( dogyuunto )
+	ROM_REGION( 0x080000, REGION_CPU1, 0 )			/* Main 68K code */
+	ROM_LOAD16_WORD_SWAP( "8-25.u11", 0x000000, 0x080000, CRC(4d3c952f) SHA1(194f3065c513238921047ead8b425c3d0538b9a7) ) /* real hand-written label is '8/25' */
+
+	ROM_REGION( 0x08000,  REGION_CPU2, 0 )     /* Z80 Sound CPU */
+	ROM_LOAD( "u25", 0x00000, 0x08000, CRC(41a34a7e) SHA1(c4f7833249436fd064c7088c9776d12dee4a7d39) ) /* only had a white label */
+
+	ROM_REGION( 0x200000, REGION_GFX1, ROMREGION_DISPOSE )
+	ROM_LOAD16_WORD_SWAP( "tp022_3.w92", 0x000000, 0x100000, CRC(191b595f) SHA1(89344946daa18087cc83f92027cf5da659b1c7a5) )
+	ROM_LOAD16_WORD_SWAP( "tp022_4.w93", 0x100000, 0x100000, CRC(d58d29ca) SHA1(90d142fef37764ef817347a2bed77892a288a077) )
+
+	ROM_REGION( 0x400000, REGION_GFX2, ROMREGION_DISPOSE )
+	ROM_LOAD16_WORD_SWAP( "tp022_5.w16", 0x000000, 0x200000, CRC(d4c1db45) SHA1(f5655467149ba737128c2f54c9c6cdaca6e4c35c) )
+	ROM_LOAD16_WORD_SWAP( "tp022_6.w17", 0x200000, 0x200000, CRC(d48dc74f) SHA1(081b5a00a2ff2bd82b98b30aab3cb5b6ae1014d5) )
+
+	ROM_REGION( 0x40000, REGION_SOUND1, 0 )		/* ADPCM Samples */
+	ROM_LOAD( "2m.u29", 0x00000, 0x40000, CRC(5e7a77d8) SHA1(da6beb5e8e015965ff42fd52f5aa0c0ae5bcee4f) ) /* '2M' hand-written */
 ROM_END
 
 ROM_START( kbash )
@@ -5167,12 +5048,10 @@ ROM_START( whoopee )
 	ROM_REGION( 0x040000, REGION_CPU1, 0 )			/* Main 68K code */
 	ROM_LOAD16_BYTE( "whoopee.1", 0x000000, 0x020000, CRC(28882e7e) SHA1(8fcd278a7d005eb81cd9e461139c0c0f756a4fa4) )
 	ROM_LOAD16_BYTE( "whoopee.2", 0x000001, 0x020000, CRC(6796f133) SHA1(d4e657be260ba3fd3f0556ade617882513b52685) )
-
+	
 	ROM_REGION( 0x10000, REGION_CPU2, 0 )			/* Sound Z80 code */
-	/* sound CPU is a HD647180 (Z180) with internal ROM - not yet supported */
-	/* use the Z80 version from the bootleg Pipi & Bibis set for now */
-	ROM_LOAD( "hd647180.025", 0x00000, 0x08000, BAD_DUMP CRC(101c0358) SHA1(162e02d00b7bdcdd3b48a0cd0527b7428435ec50)  )
-
+    ROM_LOAD( "hd647180.025", 0x00000, 0x08000, CRC(c02436f6) SHA1(385343f88991646ec23b385eaea82718f1251ea6) )
+	
 	ROM_REGION( 0x200000, REGION_GFX1, ROMREGION_DISPOSE )
 	ROM_LOAD( "tp025-4.bin", 0x000000, 0x100000, CRC(ab97f744) SHA1(c1620e614345dbd5c6567e4cb6f55c61b900d0ee) )
 	ROM_LOAD( "tp025-3.bin", 0x100000, 0x100000, CRC(7b16101e) SHA1(ae0119bbfa0937d18c4fbb0a3ef7cdc3b9fa6b56) )
@@ -5621,13 +5500,15 @@ ROM_END
 
 /*   ( YEAR  NAME      PARENT    MACHINE   INPUT     INIT      MONITOR COMPANY    FULLNAME     FLAGS ) */
 GAME ( 1991, tekipaki, 0,        tekipaki, tekipaki, T2_Z180,  ROT0,   "Toaplan", "Teki Paki" )
-GAME ( 1991, ghox,     0,        ghox,     ghox,     T2_Z180,  ROT270, "Toaplan", "Ghox" )
+GAME ( 1991, ghox,     0,        ghox,     ghox,     T2_Z180,  ROT270, "Toaplan", "Ghox (spinner)" )
+GAME ( 1991, ghoxj,    ghox,     ghox,     ghox,     T2_Z180,  ROT270, "Toaplan", "Ghox (joystick)" )
 GAMEX( 1992, dogyuun,  0,        dogyuun,  dogyuun,  T2_Zx80,  ROT270, "Toaplan", "Dogyuun", GAME_NO_SOUND )
+GAME(  1992, dogyuunto,dogyuun,  dogyuunto,dogyuun,  T2_Z80,   ROT270, "Toaplan", "Dogyuun (8/25/1992 location test)" )
 GAMEX( 1993, kbash,    0,        kbash,    kbash,    T2_Zx80,  ROT0,   "Toaplan", "Knuckle Bash", GAME_IMPERFECT_SOUND )
 GAME(  1999, kbash2,   0,        kbash2,   kbash2,   T2_noZ80, ROT0,   "Toaplan", "Knuckle Bash 2" )
 GAME ( 1992, truxton2, 0,        truxton2, truxton2, T2_noZ80, ROT270, "Toaplan", "Truxton II - Tatsujin II - Tatsujin Oh (Japan)" )
 GAME ( 1991, pipibibs, 0,        pipibibs, pipibibs, T2_Z80,   ROT0,   "Toaplan", "Pipi and Bibis - Whoopee!!" )
-GAME ( 1991, whoopee,  pipibibs, whoopee,  whoopee,  T2_Z80,   ROT0,   "Toaplan", "Whoopee!! - Pipi and Bibis" )
+GAME ( 1991, whoopee,  pipibibs, tekipaki, whoopee,  T2_Z180,  ROT0,   "Toaplan", "Whoopee!! - Pipi and Bibis" )
 GAME ( 1991, pipibibi, pipibibs, pipibibi, pipibibi, pipibibi, ROT0,   "[Toaplan] Ryouta Kikaku", "Pipi and Bibis - Whoopee!! (bootleg [Q])" )
 GAMEX( 1992, fixeight, 0,        fixeight, fixeight, fixeight, ROT270, "Toaplan", "FixEight", GAME_NOT_WORKING )
 GAME ( 1992, fixeighb, fixeight, fixeighb, fixeighb, fixeighb, ROT270, "Toaplan", "FixEight (Bootleg)" )
